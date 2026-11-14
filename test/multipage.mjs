@@ -1,0 +1,10 @@
+import { chromium } from '/usr/local/lib/pnpm/5/.pnpm/playwright@1.63.0-alpha-2026-08-31/node_modules/playwright/index.mjs';
+import fs from 'fs';
+const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});const ctx=await b.newContext({viewport:{width:390,height:844},locale:'ar-EG',timezoneId:'Africa/Cairo'});await ctx.route(/supabase\.co/,r=>r.abort());
+const p=await ctx.newPage();p.on('dialog',d=>d.accept());await p.goto('http://127.0.0.1:8811/');await p.waitForFunction(()=>window.__ready);
+await p.evaluate(()=>location.hash='#/backup');await p.setInputFiles('#restoreFile','/workspace/strawberry_erp/test/scenario100.json');await p.waitForFunction(()=>APP.D.runs.length===4);
+await p.evaluate(async()=>{for(let i=0;i<70;i++)await APP.upsert('payments',{no:100+i,date:'2026-11-'+String(13+Math.floor(i/30)).padStart(2,'0'),partyId:'FZ2',dir:'in',method:i%2?'cash':'transfer',cur:'EGP',amount:300+i,ref:i%2?'':'تجريبي TRX-'+(100+i)},true)});
+await p.waitForFunction(()=>window.jspdf&&window.html2canvas);
+const r=await p.evaluate(async()=>{await RPT.open('stmt',{id:'FZ2'});const pg=[...document.querySelectorAll('#pages .rp')];const info=pg.map(x=>({thead:!!x.querySelector('thead th'),pno:x.querySelector('.pno').textContent,sign:!!x.querySelector('.sign')}));
+ const pdf=await RPT.makePdf();RPT.close();const u=new Uint8Array(pdf.output('arraybuffer'));let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return {info,b64:btoa(s)}});
+fs.writeFileSync('/workspace/strawberry_erp/previews/v120/pdf/customer_statement_multipage_test.pdf',Buffer.from(r.b64,'base64'));console.log(JSON.stringify(r.info));await b.close();
