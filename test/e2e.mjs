@@ -9,7 +9,7 @@ const MT={html:'text/html; charset=utf-8',js:'text/javascript',json:'application
 const routeLocal=async c=>{if(!WK)return;await c.route('**/*',r=>{const u=new URL(r.request().url());if(c.__off)return r.abort();const f='/workspace/strawberry_erp'+(u.pathname==='/'?'/index.html':u.pathname);if(fs.existsSync(f))return r.fulfill({status:200,contentType:MT[f.split('.').pop()]||'application/octet-stream',body:fs.readFileSync(f)});return r.fulfill({status:404,body:''})})};
 await routeLocal(ctx);
 const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
-let promptAns=null;p.on('dialog',async d=>{if(d.type()==='prompt')await d.accept(promptAns||'');else await d.accept()});
+p.on('dialog',d=>{(globalThis.__NATIVE=globalThis.__NATIVE||[]).push(d.type()+': '+d.message());d.dismiss()});await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
 await p.goto(BASE);await p.waitForFunction(()=>window.__ready);
 const go=async h=>{await p.evaluate(h=>location.hash=h,h);await p.waitForTimeout(120)};
 const S='#sheet ';
@@ -90,7 +90,7 @@ await go('#/run/'+(await p.evaluate(()=>APP.D.runs[0].id)));await p.waitForTimeo
 const wtxt=await p.textContent('#main');ok('تحذير «سعر الفرزة لسه ما اتحددش» في شاشة التشغيلة',wtxt.includes('سعر الفرزة لسه ما اتحددش — التكلفة مبدئية')&&wtxt.includes('قبل خصم الفرزة غير المباعة (500 كجم)'));
 await p.evaluate(()=>document.querySelector('#toast').classList.remove('on'));await p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await p.waitForTimeout(250);await p.screenshot({path:OUT+'/run_farz_warning.png'});
 await go('#/home');ok('التحذير في الرئيسية',(await p.textContent('#main')).includes('سعر الفرزة لسه ما اتحددش'));
-await go('#/run/'+(await p.evaluate(()=>APP.D.runs[0].id)));promptAns='15';await p.click('[data-act="farzTemp"]');await p.waitForTimeout(400);promptAns=null;
+await go('#/run/'+(await p.evaluate(()=>APP.D.runs[0].id)));await p.evaluate(()=>window.__dlgPrompt='15');await p.click('[data-act="farzTemp"]');await p.waitForTimeout(400);await p.evaluate(()=>window.__dlgPrompt=null);
 let T2=await p.evaluate(()=>{const r=APP.C.R[APP.D.runs[0].id];return{st:r.status,perTon:r.perTon,label:r.costLabel}});ok('سعر مؤقت 15 → مبدئي 37,117.33',T2.st==='provisional'&&near(T2.perTon,37117.3333)&&T2.label.includes('مؤقت 15.00'),JSON.stringify(T2));
 await p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await p.waitForTimeout(250);await p.screenshot({path:OUT+'/run_farz_provisional.png'});
 // 9) العرض والتقارير
@@ -118,7 +118,7 @@ await p.reload();await p.waitForFunction(()=>window.__ready);ok('البيانا�
 // 11) نسخة احتياطية واسترجاع
 await go('#/backup');const [dl]=await Promise.all([p.waitForEvent('download'),p.click('[data-act="backup"]')]);const bp=OUT+'/backup_test.json';await dl.saveAs(bp);
 const bj=JSON.parse(fs.readFileSync(bp,'utf8'));ok('ملف النسخة فيه كل البيانات',bj.app==='alrashed-strawberry-erp'&&bj.data.runs.length===1&&bj.data.purchases.length===2,dl.suggestedFilename());
-const ctx2=await b.newContext(WK?{...devices['iPhone 13'],locale:'ar-EG',timezoneId:'Africa/Cairo'}:{viewport:{width:390,height:844},locale:'ar-EG',timezoneId:'Africa/Cairo'});await routeLocal(ctx2);const p2=await ctx2.newPage();p2.on('dialog',d=>d.accept());
+const ctx2=await b.newContext(WK?{...devices['iPhone 13'],locale:'ar-EG',timezoneId:'Africa/Cairo'}:{viewport:{width:390,height:844},locale:'ar-EG',timezoneId:'Africa/Cairo'});await routeLocal(ctx2);const p2=await ctx2.newPage();p2.on('dialog',d=>{(globalThis.__NATIVE=globalThis.__NATIVE||[]).push(d.type()+': '+d.message());d.dismiss()});await p2.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
 await p2.goto(BASE+'#/backup');await p2.waitForFunction(()=>window.__ready);ok('جهاز جديد يبدأ بالأساسيات بس',await p2.evaluate(()=>APP.D.runs.length===0&&APP.D.parties.length===1&&APP.D.factories.length===4&&APP.D.items.length===9&&APP.D.varieties.length===4));
 await p2.setInputFiles('#restoreFile',bp);await p2.waitForTimeout(800);ok('الاسترجاع رجّع نفس الأرقام',await p2.evaluate(()=>Math.abs(APP.C.R[APP.D.runs[0].id].perTon-37084)<0.01));
 // 12) تغيير طريقة الفرزة (توزيع بالوزن) ثم الرجوع

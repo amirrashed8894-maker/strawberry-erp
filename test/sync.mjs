@@ -5,7 +5,7 @@ const BASE=process.env.BASE||'http://127.0.0.1:8811/';const OUT='/workspace/stra
 const KEY=fs.readFileSync('/workspace/strawberry_erp/.secret/test_key.txt','utf8').trim();
 const res=[];const ok=(n,c,i='')=>{res.push({n,pass:!!c});console.log((c?'PASS ':'FAIL ')+n+(i?' — '+i:''))};
 const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
-const mk=async()=>{const ctx=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true,locale:'ar-EG',timezoneId:'Africa/Cairo'});const p=await ctx.newPage();p.errs=[];p.on('pageerror',e=>p.errs.push(String(e)));p.on('dialog',d=>d.accept());return {ctx,p}};
+const mk=async()=>{const ctx=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true,locale:'ar-EG',timezoneId:'Africa/Cairo'});const p=await ctx.newPage();p.errs=[];p.on('pageerror',e=>p.errs.push(String(e)));p.on('dialog',d=>{(globalThis.__NATIVE=globalThis.__NATIVE||[]).push(d.type()+': '+d.message());d.dismiss()});await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});return {ctx,p}};
 const A=await mk(),B=await mk();
 const tag='تجريبي مزامنة '+Date.now().toString().slice(-5);
 const waitSynced=async p=>{await p.waitForFunction(()=>SYNC.state.enabled&&!SYNC.state.syncing&&SYNC.state.pending===0&&SYNC.state.lastSync&&!SYNC.state.error,null,{timeout:30000})};

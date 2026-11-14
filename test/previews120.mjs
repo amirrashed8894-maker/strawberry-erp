@@ -5,7 +5,7 @@ const BASE=process.env.BASE||'http://127.0.0.1:8811/';const OUT='/workspace/stra
 const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
 const ctx=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,locale:'ar-EG',timezoneId:'Africa/Cairo'});
 await ctx.route(/supabase\.co/,r=>r.abort());
-const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('dialog',d=>d.accept());
+const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('dialog',d=>{(globalThis.__NATIVE=globalThis.__NATIVE||[]).push(d.type()+': '+d.message());d.dismiss()});await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
 await p.goto(BASE);await p.waitForFunction(()=>window.__ready);
 await p.evaluate(()=>location.hash='#/backup');await p.waitForTimeout(200);
 await p.setInputFiles('#restoreFile','/workspace/strawberry_erp/test/scenario100.json');await p.waitForFunction(()=>APP.D.runs.length===4);

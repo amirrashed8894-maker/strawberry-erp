@@ -174,7 +174,7 @@ async function paginate(doc){const holder=document.createElement('div');holder.c
   pages.forEach((p,i)=>p.querySelector('.pno').textContent='صفحة '+(i+1)+' من '+pages.length+' · v'+A().VER);
   const html=pages.map(p=>p.outerHTML);holder.remove();return html}
 
-async function open(kind,o){const doc=BUILD[kind]&&BUILD[kind](o||{});if(!doc){alert('مفيش بيانات للتقرير');return}
+async function open(kind,o){const doc=BUILD[kind]&&BUILD[kind](o||{});if(!doc){(window.say||alert)('مفيش بيانات للتقرير');return}
   CUR={doc,kind,o};const pages=await paginate(doc);CUR.pages=pages;
   $('#pages').innerHTML=pages.map(h=>'<div class="pw">'+h+'</div>').join('');$('#rep').hidden=false;document.body.classList.add('modal');fit();$('#rep').scrollTop=0;window.__repReady=pages.length}
 function fit(){const w=Math.min(window.innerWidth-16,794),s=w/794;document.querySelectorAll('#pages .pw').forEach(p=>{p.style.width=w+'px';p.style.height=(1123*s)+'px';p.firstElementChild.style.transform='scale('+s+')'})}
@@ -189,7 +189,7 @@ async function share(){$('#busy').hidden=false;try{const pdf=await makePdf();con
   const file=(()=>{try{return new File([blob],nm,{type:'application/pdf'})}catch(e){return null}})();$('#busy').hidden=true;
   if(file&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:nm})}catch(e){}return}
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nm;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
-  catch(e){$('#busy').hidden=true;alert('ماقدرتش أجهز الـ PDF: '+e)}}
+  catch(e){$('#busy').hidden=true;(window.say||alert)('ماقدرتش أجهز الـ PDF: '+e)}}
 document.addEventListener('click',e=>{const t=e.target.closest('#rClose,#rShare,#rPrint');if(!t)return;if(t.id==='rClose')close();if(t.id==='rShare')share();if(t.id==='rPrint')window.print()});
 window.RPT={open,close,makePdf,share,BUILD,paginate,moneyWords};
 })();

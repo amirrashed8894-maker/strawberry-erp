@@ -13,11 +13,11 @@ if(WK&&!process.env.BASE)await ctx.route('**/*',r=>{const u=new URL(r.request().
 // مفيش أي طلب للسحابة في الاختبار ده
 await ctx.route(/supabase\.co/,r=>r.abort());
 const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource|net::ERR/.test(m.text()))errs.push(m.text())});
-let accept=false;const dialogs=[];p.on('dialog',async d=>{dialogs.push(d.type()+': '+d.message().slice(0,80));if(accept)await d.accept();else await d.dismiss()});
+p.on('dialog',d=>{(globalThis.__NATIVE=globalThis.__NATIVE||[]).push(d.type()+': '+d.message());d.dismiss()});await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});await p.addInitScript(()=>{window.__dlgMode='dismiss'});
 await p.goto(BASE);await p.waitForFunction(()=>window.__ready);
 ok('مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));
-await p.evaluate(()=>location.hash='#/backup');await p.waitForTimeout(200);accept=true;
-await p.setInputFiles('#restoreFile','/workspace/strawberry_erp/test/scenario100.json');await p.waitForFunction(()=>APP.D.runs.length===4,null,{timeout:10000});accept=false;
+await p.evaluate(()=>location.hash='#/backup');await p.waitForTimeout(200);await p.evaluate(()=>__dlgMode='accept');
+await p.setInputFiles('#restoreFile','/workspace/strawberry_erp/test/scenario100.json');await p.waitForFunction(()=>APP.D.runs.length===4,null,{timeout:10000});await p.evaluate(()=>__dlgMode='dismiss');
 ok('اتحمل سيناريو 100 طن',await p.evaluate(()=>APP.D.purchases.length)===12);
 const ROUTES=['#/home','#/buy','#/runs','#/run/r1','#/run/r2','#/run/r3','#/run/r4','#/sales','#/acc','#/party/cus-fussga','#/party/R1','#/party/FZ1','#/more','#/stock','#/reports','#/master/factories','#/master/varieties','#/master/items','#/settings','#/backup','#/cloud','#/archive'];
 const TABS={'#/buy':['buyTab',['raw','trans','sup','tf']],'#/acc':['accTab',['sup','cus']],'#/stock':['stockTab',['fin','raw','sup']]};
@@ -62,5 +62,6 @@ for(const k of ['purchase','transport','payment','supplyIn','transfer','run','sa
   ok('نموذج '+k+' فاضي مايتحفظش',still&&/مينفعش/.test(er)&&cnt===cnt2,er.slice(0,120));if(still)await p.click('#sheet .shb [data-act="fclose"]');await p.waitForTimeout(60)}
 ok('مفيش أخطاء جافاسكريبت',!errs.length,errs.slice(0,5).join(' | '));
 ok('مفيش أي طلب اتبعت للسحابة',await p.evaluate(()=>!SYNC.state.enabled));
+ok('مفيش نوافذ متصفح (prompt/confirm/alert) — كله جوه البرنامج',!(globalThis.__NATIVE||[]).length,(globalThis.__NATIVE||[]).join(' | '));const dialogs=await p.evaluate(()=>__dlgLog);ok('نوافذ البرنامج اشتغلت (حذف/استرجاع…)',dialogs.length>0,dialogs.length);
 fs.writeFileSync(OUT+'/sweep.json',JSON.stringify({res,clicks,reports,forms,dialogs},null,1));
 await b.close();const f=res.filter(r=>!r.pass).length;console.log(`${WK?'webkit':'chromium'} ${W}px: ${res.length-f}/${res.length} PASS · ${clicks} ضغطة · ${reports} تقرير · ${forms} نموذج`);process.exit(f?1:0);

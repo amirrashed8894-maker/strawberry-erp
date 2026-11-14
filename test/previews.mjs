@@ -2,7 +2,7 @@ import { chromium } from '/usr/local/lib/pnpm/5/.pnpm/playwright@1.63.0-alpha-20
 const BASE='https://strawberry-erp.onrender.com/';
 const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
 const ctx=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:1000/390,isMobile:true,hasTouch:true,locale:'ar-EG',timezoneId:'Africa/Cairo'});
-const p=await ctx.newPage();p.on('dialog',d=>d.accept());
+const p=await ctx.newPage();p.on('dialog',d=>{(globalThis.__NATIVE=globalThis.__NATIVE||[]).push(d.type()+': '+d.message());d.dismiss()});await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
 await p.goto(BASE+'#/backup');await p.waitForFunction(()=>window.__ready);
 await p.setInputFiles('#restoreFile','/workspace/strawberry_erp/test/out_live/backup_test.json');await p.waitForTimeout(1000);
 await p.evaluate(()=>{location.hash='#/home'});await p.waitForTimeout(3200);

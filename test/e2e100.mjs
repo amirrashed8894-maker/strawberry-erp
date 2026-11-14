@@ -13,7 +13,7 @@ const MT={html:'text/html; charset=utf-8',js:'text/javascript',json:'application
 const mkCtx=async()=>{const c=await b.newContext(ctxOpt);if(WK&&!process.env.BASE)await c.route('**/*',r=>{const u=new URL(r.request().url());if(c.__off||u.hostname!=='erp.test')return r.abort();const f='/workspace/strawberry_erp'+(u.pathname==='/'?'/index.html':u.pathname);if(fs.existsSync(f))return r.fulfill({status:200,contentType:MT[f.split('.').pop()]||'application/octet-stream',body:fs.readFileSync(f)});return r.fulfill({status:404,body:''})});
   await c.route(/supabase\.co/,r=>r.abort());return c};
 const ctx=await mkCtx();const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));
-let dlg='accept',lastDialog='';p.on('dialog',async d=>{lastDialog=d.message();if(dlg==='accept')await d.accept();else await d.dismiss()});
+p.on('dialog',d=>{(globalThis.__NATIVE=globalThis.__NATIVE||[]).push(d.type()+': '+d.message());d.dismiss()});await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
 await p.goto(BASE);await p.waitForFunction(()=>window.__ready);
 ok('البروفايل مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));
 const S='#sheet ';
@@ -107,9 +107,9 @@ const avail=await p.$$eval(S+'select[data-p="inputs.0.purchaseId"] option',L=>L.
 await newK('purchase');await fill('date','07/11/2026');await fill('no',13);await selV('supplierId',ID.R5);await selV('factoryId','fac3');await fill('gross',6000);await fill('tare',5000);await fill('price',30);await save();
 await newK('run');await fill('date','07/11/2026');await fill('no',5);await selV('factoryId','fac3');await selV('inputs.0.purchaseId',await aid('purchases',13));await fill('inputs.0.kg',1000);await fill('cartons',70);await fill('farzSacks',8);
 await add('supplies');await selV('supplies.0.itemId','itm1');await fill('supplies.0.qty',500);await selV('supplies.0.locId','fac3');
-dlg='dismiss';lastDialog='';let er=await trySave();ok('صرف 500 كرتونة من الفجر (الرصيد 200) بيسأل الأول',/الرصيد مش كفاية|أكتر من الرصيد/.test(lastDialog),lastDialog.slice(0,80));
+await p.evaluate(()=>{__dlgMode='dismiss';__dlgLog=[]});let er=await trySave();const lastDialog=await p.evaluate(()=>__dlgLog.slice(-1)[0]||'');ok('صرف 500 كرتونة من الفجر (الرصيد 200) بيسأل الأول',/الرصيد مش كفاية|أكتر من الرصيد/.test(lastDialog),lastDialog.slice(0,80));
 ok('ولو رفضت مايتحفظش',await p.evaluate(()=>APP.D.runs.length)===nr&&await p.$eval('#sheet',e=>!e.hidden));
-dlg='accept';await save();ok('ولو وافقت بيتحفظ ويظهر في «محتاج مراجعة»',await p.evaluate(()=>APP.C.warns.some(w=>w.type==='issue')));
+await p.evaluate(()=>__dlgMode='accept');await save();ok('ولو وافقت بيتحفظ ويظهر في «محتاج مراجعة»',await p.evaluate(()=>APP.C.warns.some(w=>w.type==='issue')));
 // حذف ← أرشيف ← ترجيع
 const r5=await aid('runs',5);await editK('run',r5);await p.click(S+'[data-act="fdel"]');await p.waitForTimeout(300);
 ok('التشغيلة اتمسحت',!(await p.evaluate(id=>!!APP.get('runs',id),r5)));
@@ -139,7 +139,7 @@ let file=OUT+'/backup100.json';
 if(!WK){const [dl]=await Promise.all([p.waitForEvent('download'),p.click('[data-act="backup"]')]);await dl.saveAs(file)}
 else{const j=await p.evaluate(()=>{const d={};ERP.COLLS.forEach(c=>d[c]=APP.D[c]);return JSON.stringify({app:'alrashed-strawberry-erp',version:APP.VER,exportedAt:new Date().toISOString(),data:d})});fs.writeFileSync(file,j)}
 ok('ملف النسخة فيه كل الحركات',(()=>{const j=JSON.parse(fs.readFileSync(file,'utf8'));return j.data.purchases.length===12&&j.data.runs.length===4&&j.data.sales.length===7&&j.data.payments.length===16})());
-const ctx2=await mkCtx();const p2=await ctx2.newPage();p2.on('dialog',d=>d.accept());await p2.goto(BASE);await p2.waitForFunction(()=>window.__ready);
+const ctx2=await mkCtx();const p2=await ctx2.newPage();p2.on('dialog',d=>{(globalThis.__NATIVE=globalThis.__NATIVE||[]).push(d.type()+': '+d.message());d.dismiss()});await p2.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});await p2.goto(BASE);await p2.waitForFunction(()=>window.__ready);
 await p2.evaluate(()=>location.hash='#/backup');await p2.setInputFiles('#restoreFile',file);await p2.waitForFunction(()=>APP.D.runs.length===4);
 const C3=await p2.evaluate(()=>APP.D.runs.map(r=>APP.C.R[r.id].perTon.toFixed(4)).join(','));ok('الاسترجاع على جهاز جديد طلّع نفس تكلفة الطن',C3===await p.evaluate(()=>APP.D.runs.map(r=>APP.C.R[r.id].perTon.toFixed(4)).join(',')),C3);
 await ctx2.close();

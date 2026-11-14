@@ -9,7 +9,7 @@ const ctx=await b.newContext(WK?{...devices['iPhone 13'],locale:'ar-EG',timezone
 const MT={html:'text/html; charset=utf-8',js:'text/javascript',json:'application/json',webmanifest:'application/manifest+json',png:'image/png',jpg:'image/jpeg'};
 if(WK&&!process.env.BASE)await ctx.route('**/*',r=>{const u=new URL(r.request().url());if(u.hostname!=='erp.test')return r.abort();const f='/workspace/strawberry_erp'+(u.pathname==='/'?'/index.html':u.pathname);if(fs.existsSync(f))return r.fulfill({status:200,contentType:MT[f.split('.').pop()]||'application/octet-stream',body:fs.readFileSync(f)});return r.fulfill({status:404,body:''})});
 await ctx.route(/supabase\.co/,r=>r.abort());
-const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('dialog',d=>d.accept());
+const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('dialog',d=>{(globalThis.__NATIVE=globalThis.__NATIVE||[]).push(d.type()+': '+d.message());d.dismiss()});await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
 await p.goto(BASE);await p.waitForFunction(()=>window.__ready);ok('مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));
 await p.evaluate(()=>location.hash='#/backup');await p.setInputFiles('#restoreFile','/workspace/strawberry_erp/test/scenario100.json');await p.waitForFunction(()=>APP.D.runs.length===4);
 const S='#sheet ';const fill=async(k,v)=>{await p.fill(S+`input[data-p="${k}"]`,String(v))};const selV=async(k,v)=>{await p.selectOption(S+`select[data-p="${k}"]`,String(v));await p.waitForTimeout(30)};
@@ -36,7 +36,7 @@ await edit('run','r1');await fill('cartons',1760);await fill('farzSacks',204);aw
 ok('تشغيلة: الكراتين والفرزة والصرف والتكلفة',e[0]&&['الكراتين 1,750 ← 1,760','شكاير الفرزة 200 ← 204','مستلزم 1 الكمية 1,750 ← 1,760','تكلفة 1 المبلغ 35,000 ← 36,000'].every(x=>e[0].includes(x)),e[0]);
 await edit('run','r3');await fill('inputs.0.kg',9400);await fill('inputs.0.cartons',695);await save();e=await edits('runs','r3');ok('تشغيلة: كمية الخام وإنتاج المورد',e[0]&&e[0].includes('خام 1 الكجم 9,500 ← 9,400'),e[0]);
 await p.evaluate(()=>{const r=APP.get('runs','r3');const x=document.createElement('button');x.dataset.act='farzTemp';x.dataset.id='r3';document.body.appendChild(x)});
-p.removeAllListeners('dialog');p.on('dialog',d=>d.type()==='prompt'?d.accept('14'):d.accept());await p.click('[data-act="farzTemp"][data-id="r3"]');await p.waitForTimeout(300);p.removeAllListeners('dialog');p.on('dialog',d=>d.accept());
+await p.evaluate(()=>window.__dlgPrompt='14');await p.click('[data-act="farzTemp"][data-id="r3"]');await p.waitForTimeout(300);await p.evaluate(()=>window.__dlgPrompt=null);
 e=await edits('runs','r3');ok('سعر الفرزة المؤقت من زرار التشغيلة اتسجل',e.length===2&&e[1].includes('سعر الفرزة المؤقت — ← 14'),e[1]);
 // 5) مبيعات تصدير وفرزة
 await edit('sale','s2');await fill('lines.0.cartons',1490);await fill('lines.0.price',1160);await fill('rate',50.8);await fill('expenses.0.amount',7200);await save();e=await edits('sales','s2');
