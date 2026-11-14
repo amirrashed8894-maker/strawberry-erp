@@ -46,7 +46,9 @@ const Store={
     await x.done;return changed},
   async meta(k,v){if(arguments.length<2){if(!db)return (mem.meta[k]||{}).v;const x=tx('readonly');const r=await req(x.meta.get(k));return r?r.v:undefined}
     if(!db){mem.meta[k]={k,v};return}const x=tx('readwrite');x.meta.put({k,v});return x.done},
-  async tombs(){return this.all('tomb')}
+  async tombs(){return this.all('tomb')},
+  /* ترجيع من الأرشيف: يتشال من الأرشيف بس (التسجيل نفسه بيرجع بـ putMany بتاريخ تعديل أحدث، فبيكسب الحذف على السحابة) */
+  async untomb(k){if(!db){delete mem.tomb[k];return}const x=tx('readwrite');x.tomb.delete(k);return x.done}
 };
 g.Store=Store;
 })(window);

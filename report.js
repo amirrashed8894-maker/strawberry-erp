@@ -7,16 +7,19 @@ const f0=x=>fm(x,0),f2=x=>fm(x,2),f1=x=>fm(x,1),f3=x=>fm(x,3);
 const sg=x=>(x>0.5?'+':'')+f0(x);
 const A=()=>window.APP;
 let CUR=null;
-function td(v,c){return '<td'+(c?' class="'+c+'"':'')+'>'+v+'</td>'}
+/* عزل الأرقام عن النص العربي عشان «2.00%» و«$1,150» مايتقلبوش */
+const bd=h=>String(h==null?'':h).replace(/(<[^>]*>|&[#\w]+;)|(\$?[0-9A-Za-z][0-9A-Za-z,.\/\-_]*%?)/g,(m,tag,num)=>tag?tag:'<bdi>'+num+'</bdi>');
+function td(v,c){return '<td'+(c?' class="'+c+'"':'')+'>'+bd(v)+'</td>'}
+function tdc(v,span,c){return '<td colspan="'+span+'"'+(c?' class="'+c+'"':'')+'>'+bd(v)+'</td>'}
 function tr(cells,c){return '<tr'+(c?' class="'+c+'"':'')+'>'+cells.join('')+'</tr>'}
 function th(list){return '<tr>'+list.map(x=>'<th>'+x+'</th>').join('')+'</tr>'}
-function boxes(list){return '<div class="rk k'+list.length+'">'+list.map(b=>'<div class="m'+(b[3]?' main':'')+'"><span>'+b[0]+'</span><b class="num">'+b[1]+'</b>'+(b[2]?'<em class="num">'+b[2]+'</em>':'')+'</div>').join('')+'</div>'}
+function boxes(list){return '<div class="rk k'+list.length+'">'+list.map(b=>'<div class="m'+(b[3]?' main':'')+'"><span>'+bd(b[0])+'</span><b class="num">'+bd(b[1])+'</b>'+(b[2]?'<em class="num">'+bd(b[2])+'</em>':'')+'</div>').join('')+'</div>'}
 function h3(t){return '<h3>'+t+'</h3>'}
-function note(t){return '<div class="rn">'+t+'</div>'}
+function note(t){return '<div class="rn">'+bd(t)+'</div>'}
 function T(title,head,rows,foot,cls){return{table:{title,head,rows,foot,cls:cls||''}}}
 function H(html){return{html}}
 const methodTxt=m=>m==='joint'?'الفرزة: توزيع التكلفة على النهائي والفرزة بالوزن':'الفرزة: صافي بيعها الفعلي بيتخصم من تكلفة التشغيلة';
-function farzWarn(x){if(x.method==='joint'||x.status==='final')return null;return H('<div class="rwarn"><b>⚠ '+esc(x.farzWarn)+'</b> — '+esc(x.costLabel)+'. الفرزة '+f0(x.farz)+' كجم: اتباع '+f0(x.farzSoldKg)+' كجم'+(x.farzSoldKg>0.005?' بمتوسط صافي '+f2(x.farzAvg)+' ج/كجم':'')+'، والباقي '+f0(x.farzUnsold)+' كجم '+(x.status==='provisional'?'بسعر مؤقت '+f2(x.farzTemp)+' ج/كجم':'من غير سعر')+'.</div>')}
+function farzWarn(x){if(x.method==='joint'||x.status==='final')return null;return H(bd('<div class="rwarn"><b>⚠ '+esc(x.farzWarn)+'</b> — '+esc(x.costLabel)+'. الفرزة '+f0(x.farz)+' كجم: اتباع '+f0(x.farzSoldKg)+' كجم'+(x.farzSoldKg>0.005?' بمتوسط صافي '+f2(x.farzAvg)+' ج/كجم':'')+'، والباقي '+f0(x.farzUnsold)+' كجم '+(x.status==='provisional'?'بسعر مؤقت '+f2(x.farzTemp)+' ج/كجم':'من غير سعر')+'.</div>'))}
 const balTxt=b=>Math.abs(b)<0.005?'0.00':f2(Math.abs(b))+' '+(b>0?'عليه':'له');
 const per=(from,to)=>from||to?('الفترة: '+(from?'من '+E.dmy(from):'من البداية')+' '+(to?'إلى '+E.dmy(to):'إلى اليوم')):'كل الفترات';
 
@@ -67,31 +70,73 @@ BUILD.cmp=function(o){const app=A(),r=app.get('runs',o.id);if(!r)return null;con
   else{b.push(H(boxes([['المقدر للطن',f0(x.cmp.eT)+' ج'],['الفعلي للطن'+(x.status==='final'?'':' (مبدئي)'),f0(x.cmp.aT)+' ج','',1],['الفرق للطن',sg(x.cmp.v)+' ج',x.cmp.eT?f1(x.cmp.v/x.cmp.eT*100)+'%':''],['الفرق على الإنتاج',sg(x.cmp.v*x.fin/1000)+' ج',f3(x.fin/1000)+' طن']])));cmpBlocks(x).forEach(z=>b.push(z));
     b.push(T('لكل مورد',th(['المورد','ج/طن فعلي','الفرق عن المقدر']),x.rows.map(s=>tr([td(esc(s.name)),td(f0(s.perTon),'v'),td(sg(s.perTon-x.cmp.eT),'v b')])),'','sm'))}
   return{title:'المقدر والفعلي — تشغيلة #'+r.no,meta:E.dmy(r.date)+' · '+esc(app.name('factories',r.factoryId))+' · '+esc(app.name('varieties',r.varietyId)),blocks:b,file:'estimate-vs-actual-'+r.no}};
-BUILD.profit=function(o){const app=A(),D=app.D,C=app.C;const inP=s=>(!o.from||s.date>=o.from)&&(!o.to||s.date<=o.to);
+/* ===== التفقيط (المبلغ بالحروف) ===== */
+const W1=['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة','عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'];
+const W10=['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'];
+const W100=['','مائة','مائتان','ثلاثمائة','أربعمائة','خمسمائة','ستمائة','سبعمائة','ثمانمائة','تسعمائة'];
+function w999(x){const h=Math.floor(x/100),r=x%100,p=[];if(h)p.push(W100[h]);if(r){if(r<20)p.push(W1[r]);else{const u=r%10,t=Math.floor(r/10);p.push(u?W1[u]+' و'+W10[t]:W10[t])}}return p.join(' و')}
+function wGroup(x,one,two,few,many){if(x===1)return one;if(x===2)return two;if(x>=3&&x<=10)return w999(x)+' '+few;return w999(x)+' '+many}
+function intWords(v){if(v===0)return 'صفر';const G=[[1e9,'مليار','ملياران','مليارات','مليار'],[1e6,'مليون','مليونان','ملايين','مليون'],[1e3,'ألف','ألفان','آلاف','ألف']];const p=[];
+  G.forEach(g=>{const q=Math.floor(v/g[0]);if(q){p.push(wGroup(q%1000,g[1],g[2],g[3],g[4]));v-=q*g[0]}});if(v)p.push(w999(v));return p.join(' و')}
+function moneyWords(x){x=Math.round(Math.abs(+x||0)*100);const L=Math.floor(x/100),pi=x%100;return 'فقط '+(L||!pi?intWords(L)+' جنيه مصري'+(pi?' و':''):'')+(pi?intWords(pi)+' قرش':'')+' لا غير'}
+const KIND={purchase:'فاتورة خام',transport:'نقل',supplyIn:'فاتورة مستلزمات',runCost:'تكلفة تشغيل',sale:'فاتورة بيع',saleExp:'مصروف بيع',payment:'دفعة',open:'رصيد افتتاحي'};
+const isCust=t=>t==='export'||t==='farz';
+function infoGrid(cells){return '<table class="rgrid"><tbody>'+cells.filter(c=>c&&c[1]!=null&&c[1]!=='').reduce((a,c,i,L)=>{if(i%2===0)a.push('<tr><th>'+c[0]+'</th><td>'+c[1]+'</td>'+(L[i+1]?'<th>'+L[i+1][0]+'</th><td>'+L[i+1][1]+'</td>':'<th></th><td></td>')+'</tr>');return a},[]).join('')+'</tbody></table>'}
+
+/* ===== كشف الحساب ===== */
+BUILD.stmt=function(o){const app=A(),p=app.get('parties',o.id);if(!p)return null;const st=app.statement(p.id,o.from,o.to);const b=[];const cust=isCust(p.type);
+  const openRow=st.rows.filter(e=>e.kind==='open'),rows=st.rows.filter(e=>e.kind!=='open');
+  const open=st.open+openRow.reduce((a,e)=>a+e.dr-e.cr,0);let dr=0,cr=0;rows.forEach(e=>{dr+=e.dr;cr+=e.cr});const close=open+dr-cr;
+  const side=v=>Math.abs(v)<0.005?'':v>0?'عليه':'له';const amt=v=>f2(Math.abs(v))+(Math.abs(v)<0.005?'':' '+side(v));
+  b.push(H(infoGrid([['اسم الحساب','<b>'+esc(p.name)+'</b>'],['نوع الحساب',E.PTYPES[p.type]],p.nameEn?['الاسم بالإنجليزي',esc(p.nameEn)]:null,['الفترة',per(o.from,o.to).replace('الفترة: ','')],
+    p.cr?['سجل تجاري',esc(p.cr)]:null,p.tax?['بطاقة ضريبية',esc(p.tax)]:null,p.address?['العنوان',esc(p.address)]:null,p.phone?['التليفون',esc(p.phone)]:null,['عملة الكشف','جنيه مصري'],['عدد الحركات',String(rows.length)],['تاريخ الإصدار',E.dmy(E.cairoIso())]])));
+  b.push(H(boxes([['الرصيد الختامي'+(o.to?' في '+E.dmy(o.to):''),f2(Math.abs(close))+' ج',Math.abs(close)<0.005?'متسدد':(close>0?'عليه — '+(cust?'مستحق لنا على العميل':'مستحق لنا عند المورد'):'له — '+(cust?'مستحق للعميل علينا':'مستحق للمورد علينا')),1],['رصيد أول المدة',amt(open)],['مدين خلال الفترة',f2(dr)],['دائن خلال الفترة',f2(cr)]])));
+  const R=[];let bal=open,i=0;
+  R.push(tr([td(''),td(o.from?E.dmy(o.from):'','v'),td('رصيد افتتاحي'),td(''),td(o.from?'رصيد منقول قبل '+E.dmy(o.from):'رصيد أول المدة'),td(open>0?f2(open):'','v'),td(open<0?f2(-open):'','v'),td(amt(open),'v')],'g'));
+  rows.forEach(e=>{bal+=e.dr-e.cr;i++;R.push(tr([td(i,'v c'),td(E.dmy(e.date),'v'),td(esc(e.doc||KIND[e.kind]||'')),td(esc(e.no==null?'':e.no),'v c'),td(esc(e.info||e.desc)),td(e.dr?f2(e.dr):'','v'),td(e.cr?f2(e.cr):'','v'),td(amt(bal),'v')]))});
+  b.push(T('الحركات',th(['م','التاريخ','المستند','رقم','البيان','مدين','دائن','الرصيد']),R,tr([td(''),td(''),td('الإجمالي'),td(''),td(rows.length+' حركة + رصيد أول المدة'),td(f2(dr+(open>0?open:0)),'v'),td(f2(cr+(open<0?-open:0)),'v'),td(amt(close),'v b')],'tt'),'sm st'));
+  b.push(H(bd('<div class="rwords"><b>الرصيد الختامي بالحروف:</b> '+(Math.abs(close)<0.005?'صفر — الحساب متسدد':moneyWords(close)+' — '+(close>0?(cust?'مستحق لشركة الراشد للتجارة على العميل':'مستحق لشركة الراشد للتجارة عند المورد'):(cust?'مستحق للعميل على شركة الراشد للتجارة':'مستحق للمورد على شركة الراشد للتجارة')))+'</div>')));
+  b.push(H(note('مدين = عليه (مستحق لشركة الراشد)، دائن = له (مستحق على شركة الراشد). المبالغ بالجنيه المصري؛ الحركات بالدولار متحولة بالسعر المسجل في كل حركة. التواريخ يوم/شهر/سنة.')));
+  return{title:'كشف حساب '+(cust?'عميل':'مورد')+' — '+esc(p.name),meta:per(o.from,o.to),blocks:b,file:'statement-'+(cust?'customer':'supplier')}};
+
+/* ===== الربحية ===== */
+function profitData(o){const app=A(),D=app.D,C=app.C;const inP=s=>(!o.from||s.date>=o.from)&&(!o.to||s.date<=o.to);
   const sales=D.sales.filter(inP).sort((a,b)=>(a.date||'').localeCompare(b.date||'')||n(a.no)-n(b.no));
-  let rev=0,cogs=0,exp=0;const byC={},byR={};
-  sales.forEach(s=>{const x=C.SL[s.id];rev+=x.rev;cogs+=x.cogs;exp+=x.exp;const c=byC[s.customerId]=byC[s.customerId]||{rev:0,cogs:0,exp:0,kg:0,n:0};c.rev+=x.rev;c.cogs+=x.cogs;c.exp+=x.exp;c.kg+=x.kg;c.n++;
-    x.lines.forEach(l=>{const r=byR[l.runId]=byR[l.runId]||{rev:0,cogs:0,exp:0,fin:0,farz:0};const ex=x.rev?x.exp*l.egp/x.rev:0;r.rev+=l.egp;r.cogs+=l.cogs;r.exp+=ex;r[x.kind==='farz'?'farz':'fin']+=l.kg})});
-  const pr=rev-cogs-exp,b=[];const prov=Object.keys(byR).map(id=>C.R[id]).filter(x=>x&&x.method!=='joint'&&x.status!=='final');
-  if(prov.length)b.push(H('<div class="rwarn"><b>⚠ سعر الفرزة لسه ما اتحددش — التكلفة مبدئية</b> في التشغيلات: '+prov.map(x=>'#'+x.no+' ('+esc(x.costLabel)+')').join('، ')+'. الربح هيتغير لما الفرزة تتباع.</div>'));
-  b.push(H(boxes([['صافي الربح',f0(pr)+' ج',rev?f1(pr/rev*100)+'% من المبيعات':'',1],['المبيعات',f0(rev)+' ج',sales.length+' عملية'],['تكلفة البضاعة المباعة',f0(cogs)+' ج'],['مصروفات البيع',f0(exp)+' ج']])));
-  b.push(T('الربحية لكل عميل',th(['العميل','النوع','العمليات','كجم','المبيعات','التكلفة','المصروفات','الربح','%']),Object.keys(byC).map(id=>{const c=byC[id],p=app.get('parties',id)||{},q=c.rev-c.cogs-c.exp;return tr([td(esc(p.name||'—')),td(E.PTYPES[p.type]||''),td(c.n,'v'),td(f0(c.kg),'v'),td(f0(c.rev),'v'),td(f0(c.cogs),'v'),td(f0(c.exp),'v'),td(f0(q),'v b'),td(c.rev?f1(q/c.rev*100)+'%':'-','v')])}),
-    tr([td('الإجمالي'),td(''),td(sales.length,'v'),td(f0(sales.reduce((a,s)=>a+C.SL[s.id].kg,0)),'v'),td(f0(rev),'v'),td(f0(cogs),'v'),td(f0(exp),'v'),td(f0(pr),'v b'),td(rev?f1(pr/rev*100)+'%':'-','v')],'tt'),'xs'));
-  b.push(T('الربحية لكل تشغيلة',th(['التشغيلة','ج/طن تكلفة','نهائي مباع كجم','فرزة مباعة كجم','المبيعات','التكلفة','المصروفات','الربح','مخزون باقي (تكلفة)']),Object.keys(byR).map(id=>{const r=byR[id],run=app.get('runs',id)||{},x=C.R[id]||{};return tr([td('#'+(run.no||'?')+' '+E.dmy(run.date)),td(f0(x.perTon||0),'v'),td(f0(r.fin),'v'),td(f0(r.farz),'v'),td(f0(r.rev),'v'),td(f0(r.cogs),'v'),td(f0(r.exp),'v'),td(f0(r.rev-r.cogs-r.exp),'v b'),td(f0(x.stockVal||0),'v')])}),'','xs'));
-  b.push(T('الربحية لكل عملية بيع',th(['التاريخ','#','العميل','النوع','كجم','سعر البيع','المبيعات ج','التكلفة','المصروفات','الربح','%']),sales.map(s=>{const x=C.SL[s.id];const pz=x.lines.length===1?(x.cur==='USD'?'$':'')+f2(x.lines[0].price)+(x.kind==='farz'?'/كجم':'/طن'):'متعدد';
-    return tr([td(E.dmy(s.date),'v'),td(s.no,'v'),td(esc(app.name('parties',s.customerId))),td(x.kind==='farz'?'فرزة':'تصدير'),td(f0(x.kg),'v'),td(pz,'v'),td(f0(x.rev),'v'),td(f0(x.cogs),'v'),td(f0(x.exp),'v'),td(f0(x.profit),'v b'),td(f1(x.margin)+'%','v')])}),'','xs'));
-  const det=[];sales.forEach(s=>{const x=C.SL[s.id];x.lines.forEach(l=>det.push(tr([td('#'+s.no),td('تشغيلة #'+(l.runNo||'?')),td(f0(l.kg),'v'),td(f3(l.kgCost),'v'),td(f0(l.cogs),'v'),td(f0(l.egp),'v')])));x.exps.forEach(e=>det.push(tr([td('#'+s.no),td('مصروف: '+esc(e.name)),td(''),td(''),td(f0(e.amount),'v'),td('')])))});
-  b.push(T('تخصيص التكلفة على كل بيع',th(['البيع','من','كجم','تكلفة الكيلو','التكلفة ج','الإيراد ج']),det,'','xs'));
-  b.push(H(note('تكلفة البضاعة المباعة = الكمية × تكلفة الكيلو في التشغيلة اللي البيع طالع منها (النهائي بتكلفة الطن الصادر، والفرزة '+(C.method==='joint'?'بنفس تكلفة الكيلو بالوزن':'بمتوسط صافي بيعها، فربح الفرزة الإجمالي صفر لأن قيمتها اتخصمت من تكلفة النهائي')+'). مصروفات البيع متوزعة على سطور البيع بنسبة الإيراد. المبيعات بالدولار متحولة بسعر الدولار المسجل في البيع.')));
-  return{title:'تقرير الربحية',meta:per(o.from,o.to)+' · '+methodTxt(C.method),blocks:b,file:'profitability'}};
-BUILD.stmt=function(o){const app=A(),p=app.get('parties',o.id);if(!p)return null;const st=app.statement(p.id,o.from,o.to);const b=[];
-  b.push(H('<div class="rinfo"><div><b>'+esc(p.name)+'</b>'+(p.nameEn?' — '+esc(p.nameEn):'')+'</div><div>'+E.PTYPES[p.type]+(p.cr?' · سجل تجاري '+esc(p.cr):'')+(p.tax?' · بطاقة ضريبية '+esc(p.tax):'')+(p.address?' · '+esc(p.address):'')+(p.phone?' · '+esc(p.phone):'')+'</div></div>'));
-  b.push(H(boxes([['الرصيد',balTxt(st.close)+' ج','',1],['رصيد أول الفترة',balTxt(st.open)],['مدين (عليه)',f2(st.dr)],['دائن (له)',f2(st.cr)]])));
-  const rows=[];if(o.from)rows.push(tr([td(''),td('رصيد قبل '+E.dmy(o.from)),td(''),td(''),td(balTxt(st.open),'v')],'g'));
-  st.rows.forEach(e=>rows.push(tr([td(E.dmy(e.date),'v'),td(esc(e.desc)),td(e.dr?f2(e.dr):'','v'),td(e.cr?f2(e.cr):'','v'),td(balTxt(e.bal),'v')])));
-  b.push(T('الحركات',th(['التاريخ','البيان','مدين','دائن','الرصيد']),rows,tr([td(''),td('الإجمالي'),td(f2(st.dr),'v'),td(f2(st.cr),'v'),td(balTxt(st.close),'v b')],'tt'),'sm st'));
-  b.push(H(note('«عليه» = مستحق لشركة الراشد عنده، «له» = مستحق له على شركة الراشد. المبالغ بالجنيه المصري؛ الدولار متحول بالسعر المسجل في كل حركة.')));
-  return{title:'كشف حساب — '+esc(p.name),meta:per(o.from,o.to),blocks:b,file:'statement'}};
+  const L=[];sales.forEach(s=>{const x=C.SL[s.id];x.lines.forEach(l=>{const r=C.R[l.runId]||{},run=app.get('runs',l.runId)||{};const ex=x.rev?x.exp*l.egp/x.rev:(x.lines.length?x.exp/x.lines.length:0);
+    L.push({s,x,l,r,run,exp:ex,profit:l.egp-l.cogs-ex,variety:app.name('varieties',run.varietyId),prov:r.method!=='joint'&&r.status&&r.status!=='final'})})});
+  const tot={rev:0,cogs:0,exp:0,kg:0,fin:0,farz:0,finRev:0,finCost:0};L.forEach(z=>{tot.rev+=z.l.egp;tot.cogs+=z.l.cogs;tot.exp+=z.exp;tot.kg+=z.l.kg;if(z.x.kind==='farz')tot.farz+=z.l.kg;else{tot.fin+=z.l.kg;tot.finRev+=z.l.egp;tot.finCost+=z.l.cogs+z.exp}});tot.profit=tot.rev-tot.cogs-tot.exp;
+  const prov=[...new Set(L.filter(z=>z.prov).map(z=>z.l.runId))].map(id=>C.R[id]);return{app,C,sales,L,tot,prov}}
+function grp(L,key,label){const m={},order=[];L.forEach(z=>{const k=key(z);if(!m[k]){m[k]={k,label:label(z),rev:0,cogs:0,exp:0,kg:0,ids:new Set(),prov:false};order.push(k)}const g=m[k];g.rev+=z.l.egp;g.cogs+=z.l.cogs;g.exp+=z.exp;g.kg+=z.l.kg;g.ids.add(z.s.id);if(z.prov)g.prov=true});return order.map(k=>m[k])}
+const PH=['','الكمية كجم','الإيراد ج','التكلفة المخصصة ج','مصروفات البيع ج','الربح ج','الهامش'];
+function gRows(G,tot,first){const rows=G.map(g=>{const q=g.rev-g.cogs-g.exp;return tr([td(esc(g.label)+(g.prov?' <span class="flag">مبدئي</span>':'')+(first==='ops'?' <small>('+g.ids.size+' عملية)</small>':'')),td(f0(g.kg),'v'),td(f0(g.rev),'v'),td(f0(g.cogs),'v'),td(f0(g.exp),'v'),td(f0(q),'v b'),td(g.rev?f1(q/g.rev*100)+'%':'-','v')])});
+  return rows}
+function gFoot(t){return tr([td('الإجمالي'),td(f0(t.kg),'v'),td(f0(t.rev),'v'),td(f0(t.cogs),'v'),td(f0(t.exp),'v'),td(f0(t.profit),'v b'),td(t.rev?f1(t.profit/t.rev*100)+'%':'-','v')],'tt')}
+function provWarn(prov){return prov.length?H(bd('<div class="rwarn"><b>⚠ سعر الفرزة لسه ما اتحددش — التكلفة مبدئية</b> في التشغيلات: '+prov.map(x=>'#'+x.no+' ('+esc(x.costLabel)+')').join('، ')+'. السطور المعلّمة «مبدئي» ربحها هيتغير لما الفرزة تتباع أو يتحدد سعرها.</div>')):null}
+const MON=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+BUILD.profitSum=function(o){const {app,C,sales,L,tot,prov}=profitData(o);const b=[];const w=provWarn(prov);if(w)b.push(w);
+  b.push(H(boxes([['صافي الربح',f0(tot.profit)+' ج',tot.rev?'هامش '+f1(tot.profit/tot.rev*100)+'% من المبيعات':'',1],['المبيعات',f0(tot.rev)+' ج',sales.length+' عملية بيع'],['التكلفة المخصصة',f0(tot.cogs)+' ج','ومصروفات البيع '+f0(tot.exp)+' ج'],['المباع تصدير',f3(tot.fin/1000)+' طن','وفرزة '+f0(tot.farz)+' كجم']])));
+  b.push(T('حسب الفترة (الشهر)',th(['الشهر'].concat(PH.slice(1))),gRows(grp(L,z=>(z.s.date||'').slice(0,7),z=>{const m=/^(\d{4})-(\d{2})/.exec(z.s.date||'');return m?MON[+m[2]-1]+' '+m[1]:'—'}),tot),gFoot(tot),'sm'));
+  b.push(T('حسب العميل',th(['العميل'].concat(PH.slice(1))),gRows(grp(L,z=>z.s.customerId,z=>{const p=app.get('parties',z.s.customerId)||{};return (p.name||'—')+(p.type==='farz'?' (فرزة)':'')}),tot,'ops'),gFoot(tot),'sm'));
+  b.push(T('حسب الصنف',th(['الصنف'].concat(PH.slice(1))),gRows(grp(L,z=>z.variety,z=>z.variety),tot),gFoot(tot),'sm'));
+  b.push(T('حسب نوع البيع',th(['النوع'].concat(PH.slice(1))),gRows(grp(L,z=>z.x.kind,z=>z.x.kind==='farz'?'فرزة':'تصدير (إنتاج نهائي)'),tot),gFoot(tot),'sm'));
+  const ex=tot.fin?[['متوسط سعر بيع طن التصدير',f0(tot.finRev/tot.fin*1000)+' ج'],['متوسط تكلفة طن التصدير المباع (مع مصروفات البيع)',f0(tot.finCost/tot.fin*1000)+' ج'],['ربح طن التصدير',f0((tot.finRev-tot.finCost)/tot.fin*1000)+' ج']]:[];
+  if(ex.length)b.push(T('مؤشرات طن التصدير',th(['المؤشر','القيمة']),ex.map(r=>tr([td(r[0]),td(r[1],'v b')])),'','sm'));
+  b.push(H(note('التكلفة المخصصة لكل بيع = الكمية × تكلفة الكيلو في التشغيلة اللي البيع طالع منها (النهائي بتكلفة الطن الصادر، والفرزة '+(C.method==='joint'?'بنفس تكلفة الكيلو بالوزن':'بمتوسط صافي بيعها، فربح الفرزة صفر لأن قيمتها اتخصمت من تكلفة النهائي')+'). مصروفات البيع متوزعة على سطور البيع بنسبة الإيراد. الدولار متحول بالسعر المسجل في كل بيع. التفاصيل في «الربحية — مفصل».')));
+  return{title:'تقرير الربحية — مجمل',meta:per(o.from,o.to)+' · '+methodTxt(C.method),blocks:b,file:'profitability-summary'}};
+BUILD.profit=BUILD.profitSum;
+BUILD.profitDet=function(o){const {app,C,sales,L,tot,prov}=profitData(o);const b=[];const w=provWarn(prov);if(w)b.push(w);
+  b.push(H(boxes([['صافي الربح',f0(tot.profit)+' ج',tot.rev?'هامش '+f1(tot.profit/tot.rev*100)+'%':'',1],['المبيعات',f0(tot.rev)+' ج',sales.length+' عملية'],['التكلفة المخصصة',f0(tot.cogs)+' ج'],['مصروفات البيع',f0(tot.exp)+' ج']])));
+  const R=[];sales.forEach(s=>{const x=C.SL[s.id],cu=app.get('parties',s.customerId)||{};const zs=L.filter(z=>z.s.id===s.id);const any=zs.some(z=>z.prov);
+    R.push('<tr class="g">'+tdc('<b>بيع #'+esc(s.no)+' — '+E.dmy(s.date)+'</b> · '+esc(cu.name||'—')+' · '+(x.kind==='farz'?'فرزة (السعر للكيلو)':'تصدير (السعر للطن)')+(s.invNo?' · فاتورة '+esc(s.invNo):'')+(x.cur==='USD'?' · بالدولار: $'+f2(x.amount)+' × سعر '+f2(x.rate):' · بالجنيه'),9)+'</tr>');
+    zs.forEach(z=>{const l=z.l,run=z.run;const q=f0(l.kg);
+      R.push(tr([td('تشغيلة #'+esc(run.no||'?')+' '+E.dmy(run.date)+' · '+esc(app.name('factories',run.factoryId))+(x.kind==='farz'?'':' · '+f0(l.cartons)+' كرتونة')+(z.prov?' <span class="flag">مبدئي</span>':'')),td(q,'v'),td((x.cur==='USD'?'$':'')+f2(l.price),'v'),td(f0(l.egp),'v'),td(f0(l.kgCost*1000),'v'),td(f0(l.cogs),'v'),td(f0(z.exp),'v'),td(f0(z.profit),'v b'),td(l.egp?f1(z.profit/l.egp*100)+'%':'-','v')]))});
+    R.push(tr([td('إجمالي البيع #'+esc(s.no)+(any?' <span class="flag">مبدئي</span>':'')),td(f0(x.kg),'v'),td(''),td(f0(x.rev),'v'),td(x.kg?f0(x.cogs/x.kg*1000):'-','v'),td(f0(x.cogs),'v'),td(f0(x.exp),'v'),td(f0(x.profit),'v b'),td(f1(x.margin)+'%','v')],'st2'))});
+  b.push(T('الربحية لكل فاتورة بيع وتخصيصها على التشغيلات',th(['البيع / التشغيلة','الكمية كجم','سعر البيع','الإيراد ج','تكلفة الطن ج','التكلفة المخصصة ج','مصروفات البيع ج','الربح ج','%']),R,tr([td('الإجمالي — '+sales.length+' عملية'),td(f0(tot.kg),'v'),td(''),td(f0(tot.rev),'v'),td(tot.kg?f0(tot.cogs/tot.kg*1000):'-','v'),td(f0(tot.cogs),'v'),td(f0(tot.exp),'v'),td(f0(tot.profit),'v b'),td(tot.rev?f1(tot.profit/tot.rev*100)+'%':'-','v')],'tt'),'xs pd'));
+  const byR={};L.forEach(z=>{const r=byR[z.l.runId]=byR[z.l.runId]||{rev:0,cogs:0,exp:0,fin:0,farz:0};r.rev+=z.l.egp;r.cogs+=z.l.cogs;r.exp+=z.exp;r[z.x.kind==='farz'?'farz':'fin']+=z.l.kg});
+  b.push(T('ملخص لكل تشغيلة',th(['التشغيلة','الحالة','ج/طن تكلفة','نهائي مباع كجم','فرزة مباعة كجم','الإيراد ج','التكلفة ج','المصروفات ج','الربح ج','مخزون باقي (تكلفة) ج']),Object.keys(byR).map(id=>{const r=byR[id],run=app.get('runs',id)||{},x=C.R[id]||{};const pv=x.method!=='joint'&&x.status!=='final';
+    return tr([td('#'+esc(run.no||'?')+' '+E.dmy(run.date)),td(pv?'<span class="flag">مبدئي</span>':'نهائي'),td(f0(x.perTon||0),'v'),td(f0(r.fin),'v'),td(f0(r.farz),'v'),td(f0(r.rev),'v'),td(f0(r.cogs),'v'),td(f0(r.exp),'v'),td(f0(r.rev-r.cogs-r.exp),'v b'),td(f0(x.stockVal||0),'v')])}),'','xs'));
+  b.push(H(note('«مبدئي» = التشغيلة لسه فيها فرزة ما اتباعتش (بسعر مؤقت أو من غير سعر)، فتكلفة الطن والربح ممكن يتغيروا. تكلفة الطن = تكلفة كيلو التشغيلة × 1000 (للفرزة: متوسط صافي بيعها). مصروفات البيع متوزعة على سطور البيع بنسبة الإيراد.')));
+  return{title:'تقرير الربحية — مفصل',meta:per(o.from,o.to)+' · '+methodTxt(C.method),blocks:b,file:'profitability-detailed'}};
 BUILD.stock=function(){const app=A(),D=app.D,C=app.C,b=[];let F=0,Z=0,V=0;
   const fr=D.runs.filter(r=>C.R[r.id].stockFin>0.005||C.R[r.id].stockFarz>0.005).map(r=>{const x=C.R[r.id];F+=x.stockFin;Z+=x.stockFarz;V+=x.stockVal;return tr([td('#'+r.no+' '+E.dmy(r.date)),td(esc(app.name('varieties',r.varietyId))),td(esc(app.name('factories',r.factoryId))),td(f0(x.stockFin),'v'),td(f0(x.stockFin/x.cartonKg),'v'),td(f0(x.stockFarz),'v'),td(f0(x.perTon),'v'),td(f0(x.stockVal),'v b')])});
   let RV=0;const rr=D.purchases.filter(p=>C.P[p.id].remain>0.5).map(p=>{const x=C.P[p.id];RV+=x.remain*x.costKg;return tr([td('#'+p.no+' '+E.dmy(p.date)),td(esc(app.name('parties',p.supplierId))),td(esc(app.name('factories',p.factoryId))),td(f0(x.remain),'v'),td(f3(x.costKg),'v'),td(f0(x.remain*x.costKg),'v b')])});
@@ -140,5 +185,5 @@ async function share(){$('#busy').hidden=false;try{const pdf=await makePdf();con
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nm;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
   catch(e){$('#busy').hidden=true;alert('ماقدرتش أجهز الـ PDF: '+e)}}
 document.addEventListener('click',e=>{const t=e.target.closest('#rClose,#rShare,#rPrint');if(!t)return;if(t.id==='rClose')close();if(t.id==='rShare')share();if(t.id==='rPrint')window.print()});
-window.RPT={open,close,makePdf,share,BUILD,paginate};
+window.RPT={open,close,makePdf,share,BUILD,paginate,moneyWords};
 })();

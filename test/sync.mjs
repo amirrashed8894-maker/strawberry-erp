@@ -41,6 +41,12 @@ await A.p.click(S+'[data-act="fdel"]');await A.p.waitForTimeout(400);await syncN
 ok('الحذف على A اتنقل لـ B',!(await pid(B.p,tag+' ب')));
 ok('المحذوف متأرشف على الجهاز (مش ممسوح)',await B.p.evaluate(async id=>{const t=await Store.tombs();return t.some(x=>x.v&&x.v.id===id||x.id===id)},idB).catch(e=>'err '+e));
 fs.writeFileSync(OUT+'/deleted_id.txt',idB);
+// 4ب) ترجيع من الأرشيف على B → يرجع على A (الأحدث يكسب الحذف على السحابة)
+await B.p.evaluate(()=>location.hash='#/archive');await B.p.waitForFunction(id=>document.querySelector('[data-act="unarc"][data-id="parties:'+id+'"]'),idB,{timeout:10000});
+await B.p.click('[data-act="unarc"][data-id="parties:'+idB+'"]');await B.p.waitForTimeout(400);await syncNow(B.p);await syncNow(A.p);
+ok('الترجيع من الأرشيف على B ظهر على A',!!(await pid(A.p,tag+' ب')));
+await A.p.evaluate(id=>{const x=document.createElement('button');x.dataset.act='edit';x.dataset.k='party';x.dataset.id=id;document.body.appendChild(x);x.click();x.remove()},idB);await A.p.waitForTimeout(100);
+await A.p.click(S+'[data-act="fdel"]');await A.p.waitForTimeout(400);await syncNow(A.p);await syncNow(B.p);ok('واتمسح تاني (تنضيف)',!(await pid(B.p,tag+' ب')));
 // 5) شاشة الحالة
 await A.p.evaluate(()=>location.hash='#/cloud');await A.p.waitForTimeout(300);await A.p.waitForTimeout(800);await waitSynced(A.p);await A.p.waitForTimeout(200);await A.p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await A.p.waitForTimeout(250);await A.p.screenshot({path:OUT+'/sync_status.png'});
 await A.p.evaluate(()=>location.hash='#/');await A.p.waitForTimeout(300);await A.p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await A.p.waitForTimeout(250);await A.p.screenshot({path:OUT+'/dash_synced.png'});

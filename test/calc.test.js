@@ -24,4 +24,18 @@ D=build();D.transports.push({id:'t2',no:2,date:'2026-11-11',transporterId:'tr',a
 // 7) البذور بتاريخ ثابت
 assert.ok(E.seed().parties.every(p=>p.updatedAt===E.SEED_T));
 assert.equal(E.parseDmy('٠٥/١١/٢٠٢٦'),'2026-11-05');assert.equal(E.parseDmy('31/02/2026'),null);assert.equal(E.dmy('2026-11-14'),'14/11/2026');
+
+// 8) سيناريو 100 طن: core.js = الحساب المستقل (test/verify100.py)
+{const {execSync}=require('child_process');require('fs').writeFileSync(__dirname+'/scenario100.json',JSON.stringify({app:'alrashed-strawberry-erp',version:'test-100t',exportedAt:'2026-11-14T09:00:00.000Z',data:require('./scenario100.js').build()},null,1));
+ execSync('python3 '+__dirname+'/verify100.py');const V=JSON.parse(require('fs').readFileSync(__dirname+'/out/verify100.json','utf8'));
+ const C=E.compute(require('./scenario100.js').build());let n=0;
+ Object.entries(V.R).forEach(([id,v])=>{const r=C.R[id];['raw','fin','farz','waste','rawCost','trans','shared','total','credit','finCost','perTon'].forEach(f=>{near(r[f==='raw'?'rawKg':f],v[f],id+'.'+f);n++});assert.equal(r.status,v.status);
+   Object.entries(v.bySup).forEach(([s,x])=>{near(r.rows.find(q=>q.supplierId===s).perTon,x,id+'.'+s);n++})});
+ Object.entries(V.SL).forEach(([id,v])=>['rev','cogs','exp','profit'].forEach(f=>{near(C.SL[id][f],v[f],id+'.'+f);n++}));
+ Object.entries(V.BAL).forEach(([id,v])=>{near(C.BAL[id].bal,v,'bal '+id);n++});
+ const tot=Object.values(C.R).reduce((a,r)=>{a.raw+=r.rawKg;a.fin+=r.fin;a.fc+=r.finCost;return a},{raw:0,fin:0,fc:0});near(tot.raw,100000,'100 طن');near(tot.fin,70000,'70 طن صادر');near(tot.fc/tot.fin*1000,V.tot.perTon,'متوسط الطن');
+ assert.equal(C.warns.length,0);console.log('100t scenario: '+n+' numbers match the independent calculation');}
+// 9) المبلغ بالحروف
+{global.window={addEventListener(){}};global.document={addEventListener(){},querySelector(){}};global.ERP=E;require('../report.js');const w=window.RPT.moneyWords;
+ assert.equal(w(150000),'فقط مائة وخمسون ألف جنيه مصري لا غير');assert.equal(w(2000),'فقط ألفان جنيه مصري لا غير');assert.equal(w(1234567.89),'فقط مليون ومائتان وأربعة وثلاثون ألف وخمسمائة وسبعة وستون جنيه مصري وتسعة وثمانون قرش لا غير');assert.equal(w(0.5),'فقط خمسون قرش لا غير')}
 console.log('calc tests OK');

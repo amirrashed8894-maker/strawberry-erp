@@ -1,0 +1,2067 @@
+{
+ "app": "alrashed-strawberry-erp",
+ "version": "test-100t",
+ "exportedAt": "2026-11-14T09:00:00.000Z",
+ "data": {
+  "settings": [
+   {
+    "id": "main",
+    "farzMethod": "credit",
+    "cartonKg": 10,
+    "sackKg": 25,
+    "usdRate": 52,
+    "lastBackup": null,
+    "changedSince": false,
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   }
+  ],
+  "factories": [
+   {
+    "id": "fac1",
+    "name": "الثلاجة العربية",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "fac2",
+    "name": "الحسن",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "fac3",
+    "name": "الفجر",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "fac4",
+    "name": "بوناتيرا",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   }
+  ],
+  "varieties": [
+   {
+    "id": "var1",
+    "name": "فراولة",
+    "est": {
+     "sizeLabel": "حجم 35 فأعلى",
+     "inputs": {
+      "carton": 10,
+      "tons": 24,
+      "usd": 52,
+      "price": 28,
+      "waste": 0.75,
+      "over": 10,
+      "overPrice": 15,
+      "truckLoad": 5,
+      "truckPrice": 3500
+     },
+     "supplies": [
+      {
+       "name": "كرتون جينريال 10ك بالهالك",
+       "v": 1600
+      },
+      {
+       "name": "باليت",
+       "v": 334
+      },
+      {
+       "name": "كيس",
+       "v": 330
+      },
+      {
+       "name": "لزق",
+       "v": 71
+      },
+      {
+       "name": "استرتش",
+       "v": 41
+      },
+      {
+       "name": "التعبئة بالسيزر",
+       "v": 2000
+      },
+      {
+       "name": "الورق",
+       "v": 500
+      },
+      {
+       "name": "زوايا",
+       "v": 70
+      },
+      {
+       "name": "ستيكر فحص",
+       "v": 14
+      },
+      {
+       "name": "داتا لوجر",
+       "v": 15
+      },
+      {
+       "name": "إكراميات",
+       "v": 62
+      },
+      {
+       "name": "عمولات شراء",
+       "v": 840
+      },
+      {
+       "name": "فحص / مصاريف أخرى",
+       "v": 0
+      }
+     ]
+    },
+    "estNeeds": false,
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "var2",
+    "name": "بروكلي",
+    "est": {
+     "sizeLabel": "حجم 35 فأعلى",
+     "inputs": {
+      "carton": 10,
+      "tons": 24,
+      "usd": 52,
+      "price": 28,
+      "waste": 0.75,
+      "over": 10,
+      "overPrice": 15,
+      "truckLoad": 5,
+      "truckPrice": 3500
+     },
+     "supplies": [
+      {
+       "name": "كرتون جينريال 10ك بالهالك",
+       "v": 1600
+      },
+      {
+       "name": "باليت",
+       "v": 334
+      },
+      {
+       "name": "كيس",
+       "v": 330
+      },
+      {
+       "name": "لزق",
+       "v": 71
+      },
+      {
+       "name": "استرتش",
+       "v": 41
+      },
+      {
+       "name": "التعبئة بالسيزر",
+       "v": 2000
+      },
+      {
+       "name": "الورق",
+       "v": 500
+      },
+      {
+       "name": "زوايا",
+       "v": 70
+      },
+      {
+       "name": "ستيكر فحص",
+       "v": 14
+      },
+      {
+       "name": "داتا لوجر",
+       "v": 15
+      },
+      {
+       "name": "إكراميات",
+       "v": 62
+      },
+      {
+       "name": "عمولات شراء",
+       "v": 840
+      },
+      {
+       "name": "فحص / مصاريف أخرى",
+       "v": 0
+      }
+     ]
+    },
+    "estNeeds": true,
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "var3",
+    "name": "قرنبيط",
+    "est": {
+     "sizeLabel": "حجم 35 فأعلى",
+     "inputs": {
+      "carton": 10,
+      "tons": 24,
+      "usd": 52,
+      "price": 28,
+      "waste": 0.75,
+      "over": 10,
+      "overPrice": 15,
+      "truckLoad": 5,
+      "truckPrice": 3500
+     },
+     "supplies": [
+      {
+       "name": "كرتون جينريال 10ك بالهالك",
+       "v": 1600
+      },
+      {
+       "name": "باليت",
+       "v": 334
+      },
+      {
+       "name": "كيس",
+       "v": 330
+      },
+      {
+       "name": "لزق",
+       "v": 71
+      },
+      {
+       "name": "استرتش",
+       "v": 41
+      },
+      {
+       "name": "التعبئة بالسيزر",
+       "v": 2000
+      },
+      {
+       "name": "الورق",
+       "v": 500
+      },
+      {
+       "name": "زوايا",
+       "v": 70
+      },
+      {
+       "name": "ستيكر فحص",
+       "v": 14
+      },
+      {
+       "name": "داتا لوجر",
+       "v": 15
+      },
+      {
+       "name": "إكراميات",
+       "v": 62
+      },
+      {
+       "name": "عمولات شراء",
+       "v": 840
+      },
+      {
+       "name": "فحص / مصاريف أخرى",
+       "v": 0
+      }
+     ]
+    },
+    "estNeeds": true,
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "var4",
+    "name": "خرشوف",
+    "est": {
+     "sizeLabel": "حجم 35 فأعلى",
+     "inputs": {
+      "carton": 10,
+      "tons": 24,
+      "usd": 52,
+      "price": 28,
+      "waste": 0.75,
+      "over": 10,
+      "overPrice": 15,
+      "truckLoad": 5,
+      "truckPrice": 3500
+     },
+     "supplies": [
+      {
+       "name": "كرتون جينريال 10ك بالهالك",
+       "v": 1600
+      },
+      {
+       "name": "باليت",
+       "v": 334
+      },
+      {
+       "name": "كيس",
+       "v": 330
+      },
+      {
+       "name": "لزق",
+       "v": 71
+      },
+      {
+       "name": "استرتش",
+       "v": 41
+      },
+      {
+       "name": "التعبئة بالسيزر",
+       "v": 2000
+      },
+      {
+       "name": "الورق",
+       "v": 500
+      },
+      {
+       "name": "زوايا",
+       "v": 70
+      },
+      {
+       "name": "ستيكر فحص",
+       "v": 14
+      },
+      {
+       "name": "داتا لوجر",
+       "v": 15
+      },
+      {
+       "name": "إكراميات",
+       "v": 62
+      },
+      {
+       "name": "عمولات شراء",
+       "v": 840
+      },
+      {
+       "name": "فحص / مصاريف أخرى",
+       "v": 0
+      }
+     ]
+    },
+    "estNeeds": true,
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   }
+  ],
+  "items": [
+   {
+    "id": "itm1",
+    "name": "كرتون جينريال 10ك بالهالك",
+    "unit": "كرتونة",
+    "refPrice": "",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "itm2",
+    "name": "باليت",
+    "unit": "باليت",
+    "refPrice": "",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "itm3",
+    "name": "كيس",
+    "unit": "كيس",
+    "refPrice": "",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "itm4",
+    "name": "لزق",
+    "unit": "بكرة",
+    "refPrice": "",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "itm5",
+    "name": "استرتش",
+    "unit": "بكرة",
+    "refPrice": "",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "itm6",
+    "name": "الورق",
+    "unit": "وحدة",
+    "refPrice": "",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "itm7",
+    "name": "زوايا",
+    "unit": "قطعة",
+    "refPrice": "",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "itm8",
+    "name": "ستيكر فحص",
+    "unit": "ستيكر",
+    "refPrice": "",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "id": "itm9",
+    "name": "داتا لوجر",
+    "unit": "جهاز",
+    "refPrice": "",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   }
+  ],
+  "parties": [
+   {
+    "id": "cus-fussga",
+    "type": "export",
+    "name": "فوسجا أجروفود لعموم التصدير",
+    "nameEn": "FUSSGA AGROFOODS",
+    "cr": "18876",
+    "tax": "448-166-970",
+    "address": "دمنهور",
+    "phone": "",
+    "open": 50000,
+    "openSide": "d",
+    "createdAt": "2000-01-01T00:00:00.000Z",
+    "updatedAt": "2000-01-01T00:00:00.000Z"
+   },
+   {
+    "createdAt": "2026-11-01T06:00:00.000Z",
+    "updatedAt": "2026-11-01T06:01:00.000Z",
+    "id": "R1",
+    "type": "raw",
+    "name": "تجريبي مورد خام — الحاج سعيد",
+    "disc": 2,
+    "phone": "01000000001"
+   },
+   {
+    "createdAt": "2026-11-01T06:02:00.000Z",
+    "updatedAt": "2026-11-01T06:03:00.000Z",
+    "id": "R2",
+    "type": "raw",
+    "name": "تجريبي مورد خام — مزرعة النوبارية",
+    "disc": 3
+   },
+   {
+    "createdAt": "2026-11-01T06:04:00.000Z",
+    "updatedAt": "2026-11-01T06:05:00.000Z",
+    "id": "R3",
+    "type": "raw",
+    "name": "تجريبي مورد خام — الإسماعيلية",
+    "disc": 1.5,
+    "open": 20000,
+    "openSide": "c"
+   },
+   {
+    "createdAt": "2026-11-01T06:06:00.000Z",
+    "updatedAt": "2026-11-01T06:07:00.000Z",
+    "id": "R4",
+    "type": "raw",
+    "name": "تجريبي مورد خام — البحيرة",
+    "disc": 2.5
+   },
+   {
+    "createdAt": "2026-11-01T06:08:00.000Z",
+    "updatedAt": "2026-11-01T06:09:00.000Z",
+    "id": "R5",
+    "type": "raw",
+    "name": "تجريبي مورد خام — المنوفية",
+    "disc": 0
+   },
+   {
+    "createdAt": "2026-11-01T06:10:00.000Z",
+    "updatedAt": "2026-11-01T06:11:00.000Z",
+    "id": "T1",
+    "type": "transport",
+    "name": "تجريبي نقل — المصري"
+   },
+   {
+    "createdAt": "2026-11-01T06:12:00.000Z",
+    "updatedAt": "2026-11-01T06:13:00.000Z",
+    "id": "T2",
+    "type": "transport",
+    "name": "تجريبي نقل — النجار"
+   },
+   {
+    "createdAt": "2026-11-01T06:14:00.000Z",
+    "updatedAt": "2026-11-01T06:15:00.000Z",
+    "id": "SP1",
+    "type": "supply",
+    "name": "تجريبي مستلزمات — الكرتون"
+   },
+   {
+    "createdAt": "2026-11-01T06:16:00.000Z",
+    "updatedAt": "2026-11-01T06:17:00.000Z",
+    "id": "SP2",
+    "type": "supply",
+    "name": "تجريبي مستلزمات — البلاستيك"
+   },
+   {
+    "createdAt": "2026-11-01T06:18:00.000Z",
+    "updatedAt": "2026-11-01T06:19:00.000Z",
+    "id": "SV1",
+    "type": "service",
+    "name": "تجريبي خدمات — الثلاجة العربية"
+   },
+   {
+    "createdAt": "2026-11-01T06:20:00.000Z",
+    "updatedAt": "2026-11-01T06:21:00.000Z",
+    "id": "SV2",
+    "type": "service",
+    "name": "تجريبي خدمات — الحسن"
+   },
+   {
+    "createdAt": "2026-11-01T06:22:00.000Z",
+    "updatedAt": "2026-11-01T06:23:00.000Z",
+    "id": "EX2",
+    "type": "export",
+    "name": "تجريبي عميل تصدير — جلف فريش",
+    "nameEn": "TEST GULF FRESH"
+   },
+   {
+    "createdAt": "2026-11-01T06:24:00.000Z",
+    "updatedAt": "2026-11-01T06:25:00.000Z",
+    "id": "FZ1",
+    "type": "farz",
+    "name": "تجريبي عميل فرزة — مصنع العصائر"
+   },
+   {
+    "createdAt": "2026-11-01T06:26:00.000Z",
+    "updatedAt": "2026-11-01T06:27:00.000Z",
+    "id": "FZ2",
+    "type": "farz",
+    "name": "تجريبي عميل فرزة — مربى الدلتا"
+   }
+  ],
+  "purchases": [
+   {
+    "createdAt": "2026-11-01T06:28:00.000Z",
+    "updatedAt": "2026-11-01T06:29:00.000Z",
+    "id": "p1",
+    "no": 1,
+    "date": "2026-11-01",
+    "supplierId": "R1",
+    "varietyId": "var1",
+    "factoryId": "fac1",
+    "plate": "تجريبي 1001",
+    "ticketNo": "BSK-501",
+    "gross": 14200,
+    "tare": 5200,
+    "disc": 2,
+    "price": 28,
+    "sacks": 360,
+    "sackKg": 25,
+    "lotNo": "TEST-2611-01"
+   },
+   {
+    "createdAt": "2026-11-01T06:30:00.000Z",
+    "updatedAt": "2026-11-01T06:31:00.000Z",
+    "id": "p2",
+    "no": 2,
+    "date": "2026-11-01",
+    "supplierId": "R2",
+    "varietyId": "var1",
+    "factoryId": "fac1",
+    "plate": "تجريبي 1002",
+    "ticketNo": "BSK-502",
+    "gross": 13600,
+    "tare": 5100,
+    "disc": 3,
+    "price": 27,
+    "sacks": 340,
+    "sackKg": 25,
+    "lotNo": "TEST-2611-02"
+   },
+   {
+    "createdAt": "2026-11-01T06:32:00.000Z",
+    "updatedAt": "2026-11-01T06:33:00.000Z",
+    "id": "p3",
+    "no": 3,
+    "date": "2026-11-02",
+    "supplierId": "R3",
+    "varietyId": "var1",
+    "factoryId": "fac1",
+    "plate": "تجريبي 1003",
+    "ticketNo": "BSK-503",
+    "gross": 12300,
+    "tare": 4800,
+    "disc": 1.5,
+    "price": 29,
+    "sacks": 300,
+    "sackKg": 25,
+    "lotNo": "TEST-2611-03"
+   },
+   {
+    "createdAt": "2026-11-01T06:34:00.000Z",
+    "updatedAt": "2026-11-01T06:35:00.000Z",
+    "id": "p4",
+    "no": 4,
+    "date": "2026-11-02",
+    "supplierId": "R1",
+    "varietyId": "var1",
+    "factoryId": "fac1",
+    "plate": "تجريبي 1004",
+    "ticketNo": "BSK-504",
+    "gross": 15500,
+    "tare": 5500,
+    "disc": 2,
+    "price": 28,
+    "sacks": 400,
+    "sackKg": 25,
+    "lotNo": "TEST-2611-04"
+   },
+   {
+    "createdAt": "2026-11-01T06:36:00.000Z",
+    "updatedAt": "2026-11-01T06:37:00.000Z",
+    "id": "p5",
+    "no": 5,
+    "date": "2026-11-03",
+    "supplierId": "R4",
+    "varietyId": "var1",
+    "factoryId": "fac1",
+    "plate": "تجريبي 1005",
+    "ticketNo": "BSK-505",
+    "gross": 13000,
+    "tare": 5000,
+    "disc": 2.5,
+    "price": 26.5,
+    "sacks": 320,
+    "sackKg": 25,
+    "lotNo": "TEST-2611-05"
+   },
+   {
+    "createdAt": "2026-11-01T06:38:00.000Z",
+    "updatedAt": "2026-11-01T06:39:00.000Z",
+    "id": "p6",
+    "no": 6,
+    "date": "2026-11-03",
+    "supplierId": "R5",
+    "varietyId": "var1",
+    "factoryId": "fac2",
+    "plate": "تجريبي 1006",
+    "ticketNo": "BSK-506",
+    "gross": 14800,
+    "tare": 5300,
+    "disc": 0,
+    "price": 30,
+    "sacks": 380,
+    "sackKg": 25,
+    "lotNo": "TEST-2611-06"
+   },
+   {
+    "createdAt": "2026-11-01T06:40:00.000Z",
+    "updatedAt": "2026-11-01T06:41:00.000Z",
+    "id": "p7",
+    "no": 7,
+    "date": "2026-11-04",
+    "supplierId": "R2",
+    "varietyId": "var1",
+    "factoryId": "fac2",
+    "plate": "تجريبي 1007",
+    "ticketNo": "BSK-507",
+    "gross": 11900,
+    "tare": 4900,
+    "disc": 3,
+    "price": 27,
+    "sacks": 280,
+    "sackKg": 25,
+    "lotNo": "TEST-2611-07"
+   },
+   {
+    "createdAt": "2026-11-01T06:42:00.000Z",
+    "updatedAt": "2026-11-01T06:43:00.000Z",
+    "id": "p8",
+    "no": 8,
+    "date": "2026-11-04",
+    "supplierId": "R3",
+    "varietyId": "var1",
+    "factoryId": "fac2",
+    "plate": "تجريبي 1008",
+    "ticketNo": "BSK-508",
+    "gross": 13700,
+    "tare": 5200,
+    "disc": 1.5,
+    "price": 29,
+    "sacks": 340,
+    "sackKg": 25,
+    "lotNo": "TEST-2611-08"
+   },
+   {
+    "createdAt": "2026-11-01T06:44:00.000Z",
+    "updatedAt": "2026-11-01T06:45:00.000Z",
+    "id": "p9",
+    "no": 9,
+    "date": "2026-11-04",
+    "supplierId": "R4",
+    "varietyId": "var1",
+    "factoryId": "fac2",
+    "plate": "تجريبي 1009",
+    "ticketNo": "BSK-509",
+    "gross": 14100,
+    "tare": 5100,
+    "disc": 3,
+    "price": 26.5,
+    "sacks": 360,
+    "sackKg": 25,
+    "lotNo": "TEST-2611-09"
+   },
+   {
+    "createdAt": "2026-11-01T06:46:00.000Z",
+    "updatedAt": "2026-11-01T06:47:00.000Z",
+    "id": "p10",
+    "no": 10,
+    "date": "2026-11-05",
+    "supplierId": "R5",
+    "varietyId": "var1",
+    "factoryId": "fac4",
+    "plate": "تجريبي 1010",
+    "ticketNo": "BSK-510",
+    "gross": 12500,
+    "tare": 5000,
+    "disc": 0,
+    "price": 30,
+    "sacks": 300,
+    "sackKg": 25,
+    "lotNo": "TEST-2611-10"
+   },
+   {
+    "createdAt": "2026-11-01T06:48:00.000Z",
+    "updatedAt": "2026-11-01T06:49:00.000Z",
+    "id": "p11",
+    "no": 11,
+    "date": "2026-11-05",
+    "supplierId": "R1",
+    "varietyId": "var1",
+    "factoryId": "fac4",
+    "plate": "تجريبي 1011",
+    "ticketNo": "BSK-511",
+    "gross": 12000,
+    "tare": 5000,
+    "disc": 2,
+    "price": 28.5,
+    "sacks": 280,
+    "sackKg": 25,
+    "lotNo": "TEST-2611-11"
+   },
+   {
+    "createdAt": "2026-11-01T06:50:00.000Z",
+    "updatedAt": "2026-11-01T06:51:00.000Z",
+    "id": "p12",
+    "no": 12,
+    "date": "2026-11-05",
+    "supplierId": "R2",
+    "varietyId": "var1",
+    "factoryId": "fac4",
+    "plate": "تجريبي 1012",
+    "ticketNo": "BSK-512",
+    "gross": 13600,
+    "tare": 5100,
+    "disc": 3,
+    "price": 27.5,
+    "sacks": 340,
+    "sackKg": 25,
+    "lotNo": "TEST-2611-12"
+   }
+  ],
+  "transports": [
+   {
+    "createdAt": "2026-11-01T06:52:00.000Z",
+    "updatedAt": "2026-11-01T06:53:00.000Z",
+    "id": "t1",
+    "no": 1,
+    "date": "2026-11-01",
+    "transporterId": "T1",
+    "amount": 3500,
+    "purchaseIds": [
+     "p1"
+    ],
+    "plate": "تجريبي سواق 1"
+   },
+   {
+    "createdAt": "2026-11-01T06:54:00.000Z",
+    "updatedAt": "2026-11-01T06:55:00.000Z",
+    "id": "t2",
+    "no": 2,
+    "date": "2026-11-01",
+    "transporterId": "T1",
+    "amount": 3500,
+    "purchaseIds": [
+     "p2"
+    ],
+    "plate": "تجريبي سواق 2"
+   },
+   {
+    "createdAt": "2026-11-01T06:56:00.000Z",
+    "updatedAt": "2026-11-01T06:57:00.000Z",
+    "id": "t3",
+    "no": 3,
+    "date": "2026-11-02",
+    "transporterId": "T2",
+    "amount": 3200,
+    "purchaseIds": [
+     "p3"
+    ],
+    "plate": "تجريبي سواق 3"
+   },
+   {
+    "createdAt": "2026-11-01T06:58:00.000Z",
+    "updatedAt": "2026-11-01T06:59:00.000Z",
+    "id": "t4",
+    "no": 4,
+    "date": "2026-11-02",
+    "transporterId": "T1",
+    "amount": 3800,
+    "purchaseIds": [
+     "p4"
+    ],
+    "plate": "تجريبي سواق 4"
+   },
+   {
+    "createdAt": "2026-11-01T07:00:00.000Z",
+    "updatedAt": "2026-11-01T07:01:00.000Z",
+    "id": "t5",
+    "no": 5,
+    "date": "2026-11-03",
+    "transporterId": "T2",
+    "amount": 3200,
+    "purchaseIds": [
+     "p5"
+    ],
+    "plate": "تجريبي سواق 5"
+   },
+   {
+    "createdAt": "2026-11-01T07:02:00.000Z",
+    "updatedAt": "2026-11-01T07:03:00.000Z",
+    "id": "t6",
+    "no": 6,
+    "date": "2026-11-03",
+    "transporterId": "T1",
+    "amount": 3600,
+    "purchaseIds": [
+     "p6"
+    ],
+    "plate": "تجريبي سواق 6"
+   },
+   {
+    "createdAt": "2026-11-01T07:04:00.000Z",
+    "updatedAt": "2026-11-01T07:05:00.000Z",
+    "id": "t7",
+    "no": 7,
+    "date": "2026-11-04",
+    "transporterId": "T2",
+    "amount": 3000,
+    "purchaseIds": [
+     "p7"
+    ],
+    "plate": "تجريبي سواق 7"
+   },
+   {
+    "createdAt": "2026-11-01T07:06:00.000Z",
+    "updatedAt": "2026-11-01T07:07:00.000Z",
+    "id": "t8",
+    "no": 8,
+    "date": "2026-11-04",
+    "transporterId": "T1",
+    "amount": 3500,
+    "purchaseIds": [
+     "p8",
+     "p9"
+    ],
+    "plate": "تجريبي سواق 8"
+   },
+   {
+    "createdAt": "2026-11-01T07:08:00.000Z",
+    "updatedAt": "2026-11-01T07:09:00.000Z",
+    "id": "t9",
+    "no": 9,
+    "date": "2026-11-04",
+    "transporterId": "T2",
+    "amount": 3300,
+    "purchaseIds": [
+     "p9"
+    ],
+    "plate": "تجريبي سواق 9"
+   },
+   {
+    "createdAt": "2026-11-01T07:10:00.000Z",
+    "updatedAt": "2026-11-01T07:11:00.000Z",
+    "id": "t10",
+    "no": 10,
+    "date": "2026-11-05",
+    "transporterId": "T1",
+    "amount": 6400,
+    "purchaseIds": [
+     "p10",
+     "p11"
+    ],
+    "plate": "تجريبي سواق 10"
+   },
+   {
+    "createdAt": "2026-11-01T07:12:00.000Z",
+    "updatedAt": "2026-11-01T07:13:00.000Z",
+    "id": "t11",
+    "no": 11,
+    "date": "2026-11-05",
+    "transporterId": "T2",
+    "amount": 3400,
+    "purchaseIds": [
+     "p12"
+    ],
+    "plate": "تجريبي سواق 11"
+   },
+   {
+    "createdAt": "2026-11-01T07:36:00.000Z",
+    "updatedAt": "2026-11-01T07:37:00.000Z",
+    "id": "t12",
+    "no": 12,
+    "date": "2026-11-06",
+    "transporterId": "T2",
+    "amount": 1500,
+    "purchaseIds": [],
+    "runId": "r4",
+    "notes": "نقل داخلي بوناتيرا"
+   }
+  ],
+  "payments": [
+   {
+    "createdAt": "2026-11-01T07:52:00.000Z",
+    "updatedAt": "2026-11-01T07:53:00.000Z",
+    "id": "y1",
+    "no": 1,
+    "date": "2026-11-02",
+    "partyId": "R1",
+    "dir": "out",
+    "method": "transfer",
+    "amount": 240000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": "تجريبي TRX-1"
+   },
+   {
+    "createdAt": "2026-11-01T07:54:00.000Z",
+    "updatedAt": "2026-11-01T07:55:00.000Z",
+    "id": "y2",
+    "no": 2,
+    "date": "2026-11-03",
+    "partyId": "R2",
+    "dir": "out",
+    "method": "cash",
+    "amount": 150000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": ""
+   },
+   {
+    "createdAt": "2026-11-01T07:56:00.000Z",
+    "updatedAt": "2026-11-01T07:57:00.000Z",
+    "id": "y3",
+    "no": 3,
+    "date": "2026-11-04",
+    "partyId": "R3",
+    "dir": "out",
+    "method": "transfer",
+    "amount": 200000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": "تجريبي TRX-3"
+   },
+   {
+    "createdAt": "2026-11-01T07:58:00.000Z",
+    "updatedAt": "2026-11-01T07:59:00.000Z",
+    "id": "y4",
+    "no": 4,
+    "date": "2026-11-05",
+    "partyId": "R4",
+    "dir": "out",
+    "method": "cash",
+    "amount": 100000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": ""
+   },
+   {
+    "createdAt": "2026-11-01T08:00:00.000Z",
+    "updatedAt": "2026-11-01T08:01:00.000Z",
+    "id": "y5",
+    "no": 5,
+    "date": "2026-11-06",
+    "partyId": "R5",
+    "dir": "out",
+    "method": "transfer",
+    "amount": 510000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": "تجريبي TRX-5"
+   },
+   {
+    "createdAt": "2026-11-01T08:02:00.000Z",
+    "updatedAt": "2026-11-01T08:03:00.000Z",
+    "id": "y6",
+    "no": 6,
+    "date": "2026-11-06",
+    "partyId": "T1",
+    "dir": "out",
+    "method": "cash",
+    "amount": 20000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": ""
+   },
+   {
+    "createdAt": "2026-11-01T08:04:00.000Z",
+    "updatedAt": "2026-11-01T08:05:00.000Z",
+    "id": "y7",
+    "no": 7,
+    "date": "2026-11-06",
+    "partyId": "T2",
+    "dir": "out",
+    "method": "cash",
+    "amount": 10000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": ""
+   },
+   {
+    "createdAt": "2026-11-01T08:06:00.000Z",
+    "updatedAt": "2026-11-01T08:07:00.000Z",
+    "id": "y8",
+    "no": 8,
+    "date": "2026-11-03",
+    "partyId": "SP1",
+    "dir": "out",
+    "method": "transfer",
+    "amount": 100000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": "تجريبي TRX-8"
+   },
+   {
+    "createdAt": "2026-11-01T08:08:00.000Z",
+    "updatedAt": "2026-11-01T08:09:00.000Z",
+    "id": "y9",
+    "no": 9,
+    "date": "2026-11-03",
+    "partyId": "SP2",
+    "dir": "out",
+    "method": "cash",
+    "amount": 15000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": ""
+   },
+   {
+    "createdAt": "2026-11-01T08:10:00.000Z",
+    "updatedAt": "2026-11-01T08:11:00.000Z",
+    "id": "y10",
+    "no": 10,
+    "date": "2026-11-07",
+    "partyId": "SV1",
+    "dir": "out",
+    "method": "transfer",
+    "amount": 100000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": "تجريبي TRX-10"
+   },
+   {
+    "createdAt": "2026-11-01T08:12:00.000Z",
+    "updatedAt": "2026-11-01T08:13:00.000Z",
+    "id": "y11",
+    "no": 11,
+    "date": "2026-11-10",
+    "partyId": "cus-fussga",
+    "dir": "in",
+    "method": "transfer",
+    "amount": 20000,
+    "cur": "USD",
+    "rate": 50.6,
+    "ref": "تجريبي TRX-11"
+   },
+   {
+    "createdAt": "2026-11-01T08:14:00.000Z",
+    "updatedAt": "2026-11-01T08:15:00.000Z",
+    "id": "y12",
+    "no": 12,
+    "date": "2026-11-12",
+    "partyId": "cus-fussga",
+    "dir": "in",
+    "method": "transfer",
+    "amount": 15000,
+    "cur": "USD",
+    "rate": 50.7,
+    "ref": "تجريبي TRX-12"
+   },
+   {
+    "createdAt": "2026-11-01T08:16:00.000Z",
+    "updatedAt": "2026-11-01T08:17:00.000Z",
+    "id": "y13",
+    "no": 13,
+    "date": "2026-11-12",
+    "partyId": "EX2",
+    "dir": "in",
+    "method": "transfer",
+    "amount": 23600,
+    "cur": "USD",
+    "rate": 50.6,
+    "ref": "تجريبي TRX-13"
+   },
+   {
+    "createdAt": "2026-11-01T08:18:00.000Z",
+    "updatedAt": "2026-11-01T08:19:00.000Z",
+    "id": "y14",
+    "no": 14,
+    "date": "2026-11-08",
+    "partyId": "FZ1",
+    "dir": "in",
+    "method": "cash",
+    "amount": 89000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": ""
+   },
+   {
+    "createdAt": "2026-11-01T08:20:00.000Z",
+    "updatedAt": "2026-11-01T08:21:00.000Z",
+    "id": "y15",
+    "no": 15,
+    "date": "2026-11-10",
+    "partyId": "FZ1",
+    "dir": "in",
+    "method": "cash",
+    "amount": 30000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": ""
+   },
+   {
+    "createdAt": "2026-11-01T08:22:00.000Z",
+    "updatedAt": "2026-11-01T08:23:00.000Z",
+    "id": "y16",
+    "no": 16,
+    "date": "2026-11-12",
+    "partyId": "R1",
+    "dir": "out",
+    "method": "cash",
+    "amount": 50000,
+    "cur": "EGP",
+    "rate": "",
+    "ref": ""
+   }
+  ],
+  "supplyIn": [
+   {
+    "createdAt": "2026-11-01T07:14:00.000Z",
+    "updatedAt": "2026-11-01T07:15:00.000Z",
+    "id": "si1",
+    "no": 1,
+    "date": "2026-11-01",
+    "supplierId": "SP1",
+    "locId": "fac1",
+    "invNo": "TEST-C-101",
+    "lines": [
+     {
+      "itemId": "itm1",
+      "qty": 2000,
+      "price": 16
+     },
+     {
+      "itemId": "itm1",
+      "qty": 2000,
+      "price": 16.5
+     },
+     {
+      "itemId": "itm6",
+      "qty": 40,
+      "price": 350
+     },
+     {
+      "itemId": "itm9",
+      "qty": 20,
+      "price": 150
+     }
+    ]
+   },
+   {
+    "createdAt": "2026-11-01T07:16:00.000Z",
+    "updatedAt": "2026-11-01T07:17:00.000Z",
+    "id": "si2",
+    "no": 2,
+    "date": "2026-11-01",
+    "supplierId": "SP2",
+    "locId": "fac1",
+    "invNo": "TEST-P-201",
+    "lines": [
+     {
+      "itemId": "itm3",
+      "qty": 4000,
+      "price": 3.2
+     },
+     {
+      "itemId": "itm5",
+      "qty": 60,
+      "price": 45
+     },
+     {
+      "itemId": "itm4",
+      "qty": 100,
+      "price": 25
+     },
+     {
+      "itemId": "itm2",
+      "qty": 50,
+      "price": 330
+     }
+    ]
+   },
+   {
+    "createdAt": "2026-11-01T07:18:00.000Z",
+    "updatedAt": "2026-11-01T07:19:00.000Z",
+    "id": "si3",
+    "no": 3,
+    "date": "2026-11-02",
+    "supplierId": "SP1",
+    "locId": "fac2",
+    "invNo": "TEST-C-102",
+    "lines": [
+     {
+      "itemId": "itm1",
+      "qty": 2500,
+      "price": 16.6
+     },
+     {
+      "itemId": "itm2",
+      "qty": 30,
+      "price": 335
+     }
+    ]
+   },
+   {
+    "createdAt": "2026-11-01T07:20:00.000Z",
+    "updatedAt": "2026-11-01T07:21:00.000Z",
+    "id": "si4",
+    "no": 4,
+    "date": "2026-11-02",
+    "supplierId": "SP2",
+    "locId": "fac2",
+    "invNo": "TEST-P-202",
+    "lines": [
+     {
+      "itemId": "itm3",
+      "qty": 2500,
+      "price": 3.3
+     },
+     {
+      "itemId": "itm5",
+      "qty": 30,
+      "price": 46
+     }
+    ]
+   },
+   {
+    "createdAt": "2026-11-01T07:22:00.000Z",
+    "updatedAt": "2026-11-01T07:23:00.000Z",
+    "id": "si5",
+    "no": 5,
+    "date": "2026-11-03",
+    "supplierId": "SP1",
+    "locId": "fac3",
+    "invNo": "TEST-C-103",
+    "lines": [
+     {
+      "itemId": "itm1",
+      "qty": 2000,
+      "price": 16.8
+     },
+     {
+      "itemId": "itm3",
+      "qty": 2000,
+      "price": 3.25
+     }
+    ]
+   }
+  ],
+  "transfers": [
+   {
+    "createdAt": "2026-11-01T07:24:00.000Z",
+    "updatedAt": "2026-11-01T07:25:00.000Z",
+    "id": "tf1",
+    "no": 1,
+    "date": "2026-11-04",
+    "fromId": "fac3",
+    "toId": "fac4",
+    "lines": [
+     {
+      "itemId": "itm1",
+      "qty": 1800
+     },
+     {
+      "itemId": "itm3",
+      "qty": 1800
+     }
+    ]
+   },
+   {
+    "createdAt": "2026-11-01T07:26:00.000Z",
+    "updatedAt": "2026-11-01T07:27:00.000Z",
+    "id": "tf2",
+    "no": 2,
+    "date": "2026-11-04",
+    "fromId": "fac1",
+    "toId": "fac4",
+    "lines": [
+     {
+      "itemId": "itm2",
+      "qty": 16
+     },
+     {
+      "itemId": "itm5",
+      "qty": 16
+     }
+    ]
+   }
+  ],
+  "runs": [
+   {
+    "createdAt": "2026-11-01T07:28:00.000Z",
+    "updatedAt": "2026-11-01T07:29:00.000Z",
+    "id": "r1",
+    "no": 1,
+    "date": "2026-11-03",
+    "factoryId": "fac1",
+    "varietyId": "var1",
+    "inputs": [
+     {
+      "purchaseId": "p1",
+      "kg": 9000
+     },
+     {
+      "purchaseId": "p2",
+      "kg": 8500
+     },
+     {
+      "purchaseId": "p3",
+      "kg": 7500
+     }
+    ],
+    "cartons": 1750,
+    "cartonKg": 10,
+    "farzSacks": 200,
+    "farzSackKg": 25,
+    "farzTemp": "",
+    "supplies": [
+     {
+      "itemId": "itm1",
+      "qty": 1750,
+      "locId": "fac1"
+     },
+     {
+      "itemId": "itm3",
+      "qty": 1750,
+      "locId": "fac1"
+     },
+     {
+      "itemId": "itm2",
+      "qty": 18,
+      "locId": "fac1"
+     },
+     {
+      "itemId": "itm5",
+      "qty": 18,
+      "locId": "fac1"
+     },
+     {
+      "itemId": "itm4",
+      "qty": 25,
+      "locId": "fac1"
+     },
+     {
+      "itemId": "itm6",
+      "qty": 18,
+      "locId": "fac1"
+     }
+    ],
+    "costs": [
+     {
+      "name": "التعبئة بالسيزر",
+      "amount": 35000,
+      "partyId": "SV1"
+     },
+     {
+      "name": "تجميد",
+      "amount": 17500,
+      "partyId": "SV1"
+     },
+     {
+      "name": "تخزين مبرد",
+      "amount": 5000,
+      "partyId": ""
+     }
+    ],
+    "est": {
+     "sizeLabel": "حجم 35 فأعلى",
+     "inputs": {
+      "carton": 10,
+      "tons": 24,
+      "usd": 52,
+      "price": 28,
+      "waste": 0.75,
+      "over": 10,
+      "overPrice": 15,
+      "truckLoad": 5,
+      "truckPrice": 3500
+     },
+     "supplies": [
+      {
+       "name": "كرتون جينريال 10ك بالهالك",
+       "v": 1600
+      },
+      {
+       "name": "باليت",
+       "v": 334
+      },
+      {
+       "name": "كيس",
+       "v": 330
+      },
+      {
+       "name": "لزق",
+       "v": 71
+      },
+      {
+       "name": "استرتش",
+       "v": 41
+      },
+      {
+       "name": "التعبئة بالسيزر",
+       "v": 2000
+      },
+      {
+       "name": "الورق",
+       "v": 500
+      },
+      {
+       "name": "زوايا",
+       "v": 70
+      },
+      {
+       "name": "ستيكر فحص",
+       "v": 14
+      },
+      {
+       "name": "داتا لوجر",
+       "v": 15
+      },
+      {
+       "name": "إكراميات",
+       "v": 62
+      },
+      {
+       "name": "عمولات شراء",
+       "v": 840
+      },
+      {
+       "name": "فحص / مصاريف أخرى",
+       "v": 0
+      }
+     ]
+    }
+   },
+   {
+    "createdAt": "2026-11-01T07:30:00.000Z",
+    "updatedAt": "2026-11-01T07:31:00.000Z",
+    "id": "r2",
+    "no": 2,
+    "date": "2026-11-04",
+    "factoryId": "fac1",
+    "varietyId": "var1",
+    "inputs": [
+     {
+      "purchaseId": "p4",
+      "kg": 10000
+     },
+     {
+      "purchaseId": "p5",
+      "kg": 8000
+     }
+    ],
+    "cartons": 1260,
+    "cartonKg": 10,
+    "farzSacks": 150,
+    "farzSackKg": 25,
+    "farzExtraKg": 150,
+    "farzTemp": 16,
+    "supplies": [
+     {
+      "itemId": "itm1",
+      "qty": 1260,
+      "locId": "fac1"
+     },
+     {
+      "itemId": "itm3",
+      "qty": 1260,
+      "locId": "fac1"
+     },
+     {
+      "itemId": "itm2",
+      "qty": 13,
+      "locId": "fac1"
+     },
+     {
+      "itemId": "itm5",
+      "qty": 13,
+      "locId": "fac1"
+     }
+    ],
+    "costs": [
+     {
+      "name": "التعبئة بالسيزر",
+      "amount": 25200,
+      "partyId": "SV1"
+     },
+     {
+      "name": "تجميد",
+      "amount": 12600,
+      "partyId": "SV1"
+     }
+    ],
+    "est": {
+     "sizeLabel": "حجم 35 فأعلى",
+     "inputs": {
+      "carton": 10,
+      "tons": 24,
+      "usd": 52,
+      "price": 28,
+      "waste": 0.75,
+      "over": 10,
+      "overPrice": 15,
+      "truckLoad": 5,
+      "truckPrice": 3500
+     },
+     "supplies": [
+      {
+       "name": "كرتون جينريال 10ك بالهالك",
+       "v": 1600
+      },
+      {
+       "name": "باليت",
+       "v": 334
+      },
+      {
+       "name": "كيس",
+       "v": 330
+      },
+      {
+       "name": "لزق",
+       "v": 71
+      },
+      {
+       "name": "استرتش",
+       "v": 41
+      },
+      {
+       "name": "التعبئة بالسيزر",
+       "v": 2000
+      },
+      {
+       "name": "الورق",
+       "v": 500
+      },
+      {
+       "name": "زوايا",
+       "v": 70
+      },
+      {
+       "name": "ستيكر فحص",
+       "v": 14
+      },
+      {
+       "name": "داتا لوجر",
+       "v": 15
+      },
+      {
+       "name": "إكراميات",
+       "v": 62
+      },
+      {
+       "name": "عمولات شراء",
+       "v": 840
+      },
+      {
+       "name": "فحص / مصاريف أخرى",
+       "v": 0
+      }
+     ]
+    }
+   },
+   {
+    "createdAt": "2026-11-01T07:32:00.000Z",
+    "updatedAt": "2026-11-01T07:33:00.000Z",
+    "id": "r3",
+    "no": 3,
+    "date": "2026-11-05",
+    "factoryId": "fac2",
+    "varietyId": "var1",
+    "yieldBySupplier": true,
+    "inputs": [
+     {
+      "purchaseId": "p6",
+      "kg": 9500,
+      "cartons": 690,
+      "farzSacks": 70
+     },
+     {
+      "purchaseId": "p7",
+      "kg": 7000,
+      "cartons": 480,
+      "farzSacks": 60
+     },
+     {
+      "purchaseId": "p8",
+      "kg": 8500,
+      "cartons": 600,
+      "farzSacks": 70
+     },
+     {
+      "purchaseId": "p9",
+      "kg": 9000,
+      "cartons": 610,
+      "farzSacks": 80
+     }
+    ],
+    "cartonKg": 10,
+    "farzSackKg": 25,
+    "farzTemp": "",
+    "supplies": [
+     {
+      "itemId": "itm1",
+      "qty": 2380,
+      "locId": "fac2"
+     },
+     {
+      "itemId": "itm3",
+      "qty": 2380,
+      "locId": "fac2"
+     },
+     {
+      "itemId": "itm2",
+      "qty": 24,
+      "locId": "fac2"
+     },
+     {
+      "itemId": "itm5",
+      "qty": 24,
+      "locId": "fac2"
+     }
+    ],
+    "costs": [
+     {
+      "name": "التعبئة بالسيزر",
+      "amount": 47600,
+      "partyId": "SV2"
+     },
+     {
+      "name": "تجميد",
+      "amount": 23800,
+      "partyId": "SV2"
+     },
+     {
+      "name": "فحص / مصاريف أخرى",
+      "amount": 3000,
+      "partyId": ""
+     }
+    ],
+    "est": {
+     "sizeLabel": "حجم 35 فأعلى",
+     "inputs": {
+      "carton": 10,
+      "tons": 24,
+      "usd": 52,
+      "price": 28,
+      "waste": 0.75,
+      "over": 10,
+      "overPrice": 15,
+      "truckLoad": 5,
+      "truckPrice": 3500
+     },
+     "supplies": [
+      {
+       "name": "كرتون جينريال 10ك بالهالك",
+       "v": 1600
+      },
+      {
+       "name": "باليت",
+       "v": 334
+      },
+      {
+       "name": "كيس",
+       "v": 330
+      },
+      {
+       "name": "لزق",
+       "v": 71
+      },
+      {
+       "name": "استرتش",
+       "v": 41
+      },
+      {
+       "name": "التعبئة بالسيزر",
+       "v": 2000
+      },
+      {
+       "name": "الورق",
+       "v": 500
+      },
+      {
+       "name": "زوايا",
+       "v": 70
+      },
+      {
+       "name": "ستيكر فحص",
+       "v": 14
+      },
+      {
+       "name": "داتا لوجر",
+       "v": 15
+      },
+      {
+       "name": "إكراميات",
+       "v": 62
+      },
+      {
+       "name": "عمولات شراء",
+       "v": 840
+      },
+      {
+       "name": "فحص / مصاريف أخرى",
+       "v": 0
+      }
+     ]
+    }
+   },
+   {
+    "createdAt": "2026-11-01T07:34:00.000Z",
+    "updatedAt": "2026-11-01T07:35:00.000Z",
+    "id": "r4",
+    "no": 4,
+    "date": "2026-11-06",
+    "factoryId": "fac4",
+    "varietyId": "var1",
+    "inputs": [
+     {
+      "purchaseId": "p10",
+      "kg": 7500
+     },
+     {
+      "purchaseId": "p11",
+      "kg": 7000
+     },
+     {
+      "purchaseId": "p12",
+      "kg": 8500
+     }
+    ],
+    "cartons": 1610,
+    "cartonKg": 10,
+    "farzSacks": 180,
+    "farzSackKg": 25,
+    "farzTemp": 15,
+    "supplies": [
+     {
+      "itemId": "itm1",
+      "qty": 1610,
+      "locId": "fac4"
+     },
+     {
+      "itemId": "itm3",
+      "qty": 1610,
+      "locId": "fac4"
+     },
+     {
+      "itemId": "itm2",
+      "qty": 16,
+      "locId": "fac4"
+     },
+     {
+      "itemId": "itm5",
+      "qty": 16,
+      "locId": "fac4"
+     }
+    ],
+    "costs": [
+     {
+      "name": "التعبئة بالسيزر",
+      "amount": 32200,
+      "partyId": "SV1"
+     },
+     {
+      "name": "تجميد",
+      "amount": 16100,
+      "partyId": "SV1"
+     }
+    ],
+    "est": {
+     "sizeLabel": "حجم 35 فأعلى",
+     "inputs": {
+      "carton": 10,
+      "tons": 24,
+      "usd": 52,
+      "price": 28,
+      "waste": 0.75,
+      "over": 10,
+      "overPrice": 15,
+      "truckLoad": 5,
+      "truckPrice": 3500
+     },
+     "supplies": [
+      {
+       "name": "كرتون جينريال 10ك بالهالك",
+       "v": 1600
+      },
+      {
+       "name": "باليت",
+       "v": 334
+      },
+      {
+       "name": "كيس",
+       "v": 330
+      },
+      {
+       "name": "لزق",
+       "v": 71
+      },
+      {
+       "name": "استرتش",
+       "v": 41
+      },
+      {
+       "name": "التعبئة بالسيزر",
+       "v": 2000
+      },
+      {
+       "name": "الورق",
+       "v": 500
+      },
+      {
+       "name": "زوايا",
+       "v": 70
+      },
+      {
+       "name": "ستيكر فحص",
+       "v": 14
+      },
+      {
+       "name": "داتا لوجر",
+       "v": 15
+      },
+      {
+       "name": "إكراميات",
+       "v": 62
+      },
+      {
+       "name": "عمولات شراء",
+       "v": 840
+      },
+      {
+       "name": "فحص / مصاريف أخرى",
+       "v": 0
+      }
+     ]
+    }
+   }
+  ],
+  "sales": [
+   {
+    "createdAt": "2026-11-01T07:38:00.000Z",
+    "updatedAt": "2026-11-01T07:39:00.000Z",
+    "id": "s1",
+    "no": 1,
+    "date": "2026-11-07",
+    "kind": "farz",
+    "customerId": "FZ1",
+    "cur": "EGP",
+    "rate": "",
+    "invNo": "TEST-F-1",
+    "lines": [
+     {
+      "runId": "r1",
+      "kg": 5000,
+      "price": 18
+     }
+    ],
+    "expenses": [
+     {
+      "name": "نقل فرزة",
+      "amount": 1000,
+      "partyId": "T2"
+     }
+    ]
+   },
+   {
+    "createdAt": "2026-11-01T07:40:00.000Z",
+    "updatedAt": "2026-11-01T07:41:00.000Z",
+    "id": "s2",
+    "no": 2,
+    "date": "2026-11-08",
+    "kind": "export",
+    "customerId": "cus-fussga",
+    "cur": "USD",
+    "rate": 50.5,
+    "invNo": "TEST-EXP-01",
+    "lines": [
+     {
+      "runId": "r1",
+      "cartons": 1500,
+      "price": 1150
+     }
+    ],
+    "expenses": [
+     {
+      "name": "نقل للميناء",
+      "amount": 7000,
+      "partyId": "T1"
+     },
+     {
+      "name": "تخليص",
+      "amount": 4500,
+      "partyId": ""
+     }
+    ]
+   },
+   {
+    "createdAt": "2026-11-01T07:42:00.000Z",
+    "updatedAt": "2026-11-01T07:43:00.000Z",
+    "id": "s3",
+    "no": 3,
+    "date": "2026-11-08",
+    "kind": "farz",
+    "customerId": "FZ2",
+    "cur": "EGP",
+    "rate": "",
+    "lines": [
+     {
+      "runId": "r2",
+      "kg": 2000,
+      "price": 17
+     }
+    ],
+    "expenses": []
+   },
+   {
+    "createdAt": "2026-11-01T07:44:00.000Z",
+    "updatedAt": "2026-11-01T07:45:00.000Z",
+    "id": "s4",
+    "no": 4,
+    "date": "2026-11-09",
+    "kind": "export",
+    "customerId": "cus-fussga",
+    "cur": "USD",
+    "rate": 50.6,
+    "invNo": "TEST-EXP-02",
+    "lines": [
+     {
+      "runId": "r1",
+      "cartons": 250,
+      "price": 1150
+     },
+     {
+      "runId": "r2",
+      "cartons": 1260,
+      "price": 1150
+     }
+    ],
+    "expenses": [
+     {
+      "name": "نقل للميناء",
+      "amount": 7500,
+      "partyId": "T2"
+     }
+    ]
+   },
+   {
+    "createdAt": "2026-11-01T07:46:00.000Z",
+    "updatedAt": "2026-11-01T07:47:00.000Z",
+    "id": "s5",
+    "no": 5,
+    "date": "2026-11-09",
+    "kind": "farz",
+    "customerId": "FZ1",
+    "cur": "EGP",
+    "rate": "",
+    "lines": [
+     {
+      "runId": "r3",
+      "kg": 4000,
+      "price": 17.5
+     }
+    ],
+    "expenses": []
+   },
+   {
+    "createdAt": "2026-11-01T07:48:00.000Z",
+    "updatedAt": "2026-11-01T07:49:00.000Z",
+    "id": "s6",
+    "no": 6,
+    "date": "2026-11-10",
+    "kind": "export",
+    "customerId": "EX2",
+    "cur": "USD",
+    "rate": 50.6,
+    "invNo": "TEST-EXP-03",
+    "lines": [
+     {
+      "runId": "r3",
+      "cartons": 2000,
+      "price": 1180
+     }
+    ],
+    "expenses": [
+     {
+      "name": "نقل للميناء",
+      "amount": 8000,
+      "partyId": "T1"
+     }
+    ]
+   },
+   {
+    "createdAt": "2026-11-01T07:50:00.000Z",
+    "updatedAt": "2026-11-01T07:51:00.000Z",
+    "id": "s7",
+    "no": 7,
+    "date": "2026-11-11",
+    "kind": "export",
+    "customerId": "cus-fussga",
+    "cur": "USD",
+    "rate": 50.7,
+    "invNo": "TEST-EXP-04",
+    "lines": [
+     {
+      "runId": "r3",
+      "cartons": 380,
+      "price": 1160
+     },
+     {
+      "runId": "r4",
+      "cartons": 1200,
+      "price": 1160
+     }
+    ],
+    "expenses": [
+     {
+      "name": "نقل للميناء",
+      "amount": 8000,
+      "partyId": "T1"
+     }
+    ]
+   }
+  ]
+ }
+}

@@ -105,7 +105,7 @@ const shotRep=async(kind,opt,name)=>{await p.evaluate(([k,o])=>RPT.open(k,o),[ki
   const pdf=await p.evaluate(async()=>{const pdf=await RPT.makePdf();const b64=pdf.output('datauristring');return b64});fs.writeFileSync(OUT+'/'+name+'.pdf',Buffer.from(pdf.split(',')[1],'base64'));
   await p.evaluate(()=>RPT.close());return n};
 await p.waitForFunction(()=>window.html2canvas&&window.jspdf);
-for(const [k,o,nm] of [['run',{id:rid},'run_cost'],['cmp',{id:rid},'estimate_vs_actual'],['profit',{},'profitability'],['stmt',{id:fid},'statement_fussga'],['stock',{},'stock']]){const n=await shotRep(k,o,nm);ok('تقرير '+nm+' اتعمل ('+n+' صفحة)',n>0)}
+for(const [k,o,nm] of [['run',{id:rid},'run_cost'],['cmp',{id:rid},'estimate_vs_actual'],['profitSum',{},'profitability_summary'],['profitDet',{},'profitability_detailed'],['stmt',{id:fid},'statement_fussga'],['stock',{},'stock']]){const n=await shotRep(k,o,nm);ok('تقرير '+nm+' اتعمل ('+n+' صفحة)',n>0)}
 // 9b) بيع باقي الفرزة → نهائي
 await newK('sale',JSON.stringify({kind:'farz'}));await fill('date','13/11/2026');await sel('customerId','تجريبي عميل فرزة');await selPart('lines.0.runId','#1');await fill('lines.0.kg',500);await fill('lines.0.price',16);await save();
 T2=await p.evaluate(()=>{const r=APP.C.R[APP.D.runs[0].id];return{st:r.status,perTon:r.perTon,label:r.costLabel,a:r.rows[0].perTon,b:r.rows[1].perTon,fu:Object.values(APP.C.SL)[0].profit}});
