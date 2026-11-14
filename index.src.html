@@ -18,8 +18,8 @@
 <body>
 <div id="app">
  <header class="top">
-  <div class="brand"><img src="icon-192.png" alt=""><div><h1>تكاليف الفراولة</h1><div class="sub">شركة الراشد للتجارة · حسابات وتكاليف ERP</div></div></div>
-  <span class="ver" id="ver"></span>
+  <div class="brand"><img src="icon-192.png" alt=""><div><h1>تكاليف الفراولة</h1><div class="sub">شركة الراشد للتجارة</div></div></div>
+  <div class="tr"><button class="syncp off" id="sync" data-go="#/cloud">☁</button><span class="ver" id="ver"></span></div>
  </header>
  <main id="main"><div class="empty">بيحمّل…</div></main>
 </div>
@@ -32,8 +32,10 @@
 <datalist id="costCats"><option value="التعبئة بالسيزر"><option value="رسوم المصنع / التشغيل"><option value="عمالة"><option value="تجميد"><option value="تخزين مبرد"><option value="إكراميات"><option value="عمولات شراء"><option value="فحص / مصاريف أخرى"><option value="أخرى"></datalist>
 <div id="toast"></div>
 <div id="busy" class="busy" hidden><div>بيجهز الـ PDF…</div></div>
+<script src="config.js"></script>
 <script src="core.js"></script>
 <script src="db.js"></script>
+<script src="sync.js"></script>
 <script src="report.js"></script>
 <script src="app.js"></script>
 <script src="html2canvas.min.js" defer></script>

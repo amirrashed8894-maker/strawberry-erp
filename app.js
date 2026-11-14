@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const VER='1.0.0',E=ERP,n=E.n,fm=E.fmt;
+const VER='1.1.0',E=ERP,n=E.n,fm=E.fmt;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const f0=x=>fm(x,0),f2=x=>fm(x,2),f1=x=>fm(x,1);
@@ -8,7 +8,7 @@ const N=x=>'<span class="num">'+x+'</span>';
 const today=()=>E.cairoIso();
 let D=null,C=null,F=null,UI={buyTab:'raw',accTab:'sup',stockTab:'fin',moreTab:'',flt:{}};
 const SUPT=['raw','supply','transport','service'],CUST=['export','farz'];
-const NUMK=['gross','tare','disc','price','sacks','sackKg','amount','qty','kg','cartons','farzSacks','cartonKg','farzSackKg','farzPrice','farzExtraKg','rate','open','refPrice','usdRate'];
+const NUMK=['gross','tare','disc','price','sacks','sackKg','amount','qty','kg','cartons','farzSacks','cartonKg','farzSackKg','farzTemp','farzExtraKg','rate','open','refPrice','usdRate'];
 
 /* ===== بيانات ===== */
 const S=()=>D.settings[0];
@@ -21,8 +21,8 @@ function normalize(o){if(Array.isArray(o))return o.map(normalize);if(o&&typeof o
 async function upsert(c,rec,quiet){const t=new Date().toISOString();rec=normalize(rec);if(!rec.id)rec.id=E.uid();if(!rec.createdAt)rec.createdAt=t;rec.updatedAt=t;
   const i=D[c].findIndex(x=>x.id===rec.id);if(i>=0)D[c][i]=rec;else D[c].push(rec);
   const s=S();const list=[[c,rec]];if(c!=='settings'||!quiet){s.changedSince=true;s.updatedAt=t;if(c!=='settings')list.push(['settings',s])}
-  await Store.putMany(list);recompute();if(!quiet)render();return rec}
-async function remove(c,id){D[c]=D[c].filter(x=>x.id!==id);await Store.del(c,id);S().changedSince=true;await Store.put('settings',S());recompute();render()}
+  await Store.putMany(list);recompute();if(!quiet)render();if(window.SYNC)SYNC.kick();return rec}
+async function remove(c,id){const rec=get(c,id);D[c]=D[c].filter(x=>x.id!==id);if(rec)await Store.del(c,rec);const s=S();s.changedSince=true;s.updatedAt=new Date().toISOString();await Store.put('settings',s);recompute();render();if(window.SYNC)SYNC.kick()}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2600)}
 
 /* ===== تنسيق ===== */
@@ -40,8 +40,15 @@ function route(){const h=(location.hash||'#/home').slice(2).split('/');return{v:
 function render(){if(!D)return;const r=route();const fn=VIEWS[r.v]||VIEWS.home;let h='';try{h=fn(r)}catch(e){console.error(e);h='<div class="card">حصل خطأ في العرض: '+esc(e.message)+'</div>'}
   $('#main').innerHTML=h;const tab=({run:'runs',party:'acc',stock:'more',reports:'more',master:'more',settings:'more',backup:'more'})[r.v]||r.v;
   $('#nav').innerHTML=TABS.map(t=>'<button data-go="#/'+t[0]+'" class="'+(t[0]===tab?'on':'')+'">'+t[1]+'</button>').join('');
-  $('#ver').textContent='v'+VER}
+  $('#ver').textContent='v'+VER;syncPill()}
 const VIEWS={};
+function syncPill(){const el=$('#sync');if(!el||!window.SYNC)return;const s=SYNC.state;let t,c='';
+  if(!s.enabled){t='☁ مش مربوط بالسحابة';c='off'}else if(s.syncing){t='☁ بيزامن…'}else if(!s.online){t='☁ أوفلاين'+(s.pending?' · '+s.pending+' مستني':'');c='warn'}
+  else if(s.error){t='☁ '+s.error;c='warn'}else if(s.pending){t='☁ '+s.pending+' مستني رفع';c='warn'}else{t='☁ متزامن'+(s.lastSync?' '+E.cairoTime(new Date(s.lastSync)):'');c='ok'}
+  el.textContent=t;el.className='syncp '+c}
+function farzBox(x,run){if(x.method==='joint'||x.status==='final')return '';
+  return '<div class="warnbox"><b>⚠ '+esc(x.farzWarn)+'</b><div>'+esc(x.costLabel)+'.</div><div class="sm">فرزة التشغيلة '+N(f0(x.farz))+' كجم: اتباع منها '+N(f0(x.farzSoldKg))+' كجم'+(x.farzSoldKg>0.005?' بمتوسط صافي '+N(f2(x.farzAvg))+' ج/كجم':'')+'، والباقي '+N(f0(x.farzUnsold))+' كجم '+(x.status==='provisional'?'متسعر مؤقت بـ '+N(f2(x.farzTemp))+' ج/كجم':'مالوش سعر')+'. التكلفة هتبقى نهائية لما الفرزة كلها تتباع.</div>'+
+  (run?'<div class="quick q2" style="margin:8px 0 0"><button class="btn sm pri" data-act="farzTemp" data-id="'+run.id+'">'+(x.status==='provisional'?'غيّر السعر المؤقت':'حط سعر مؤقت')+'</button><button class="btn sm" data-act="new" data-k="sale" data-kind="farz">+ بيع فرزة</button></div>':'')+'</div>'}
 function kpi(l,v,s){return '<div class="kpi"><span>'+l+'</span><b>'+v+'</b>'+(s?'<em>'+s+'</em>':'')+'</div>'}
 function backupDue(){const s=S();const has=D.purchases.length+D.runs.length+D.sales.length+D.payments.length+D.supplyIn.length>0;if(!has||!s.changedSince)return false;if(!s.lastBackup)return true;return (Date.now()-Date.parse(s.lastBackup))>3*864e5}
 VIEWS.home=function(){
@@ -62,9 +69,10 @@ function warnList(){const w=[];
   C.warns.forEach(x=>{const it=name('items',x.item);if(x.type==='issue'){const r=get('runs',x.run);w.push('تشغيلة #'+(r?r.no:'')+': صرف '+f0(x.need)+' '+esc(it)+' من '+esc(name('factories',x.loc))+' والرصيد كان '+f0(x.have))}else w.push('تحويل: '+esc(it)+' أكتر من الرصيد ('+f0(x.have)+')')});
   C.unlinkedTrans.forEach(t=>w.push('نقل #'+t.no+' مش مربوط بفاتورة خام ولا تشغيلة — مش داخل في التكلفة'));
   Object.values(C.R).forEach(r=>r.errs.forEach(e=>w.push('تشغيلة #'+r.no+': '+esc(e))));
+  Object.values(C.R).forEach(r=>{if(r.farzWarn&&r.method!=='joint')w.push('<b>تشغيلة #'+r.no+': '+esc(r.farzWarn)+'</b> — '+esc(r.costLabel)+' · <a href="#/run/'+r.id+'">افتح</a>')});
   Object.values(C.R).forEach(r=>r.supplies.forEach(s=>{if(s.noPrice)w.push('تشغيلة #'+r.no+': '+esc(s.name)+' مالوش سعر (مفيش فاتورة شراء قبل التشغيلة)')}));
   return w}
-function runRow(r){const x=C.R[r.id];return '<button class="row" data-go="#/run/'+r.id+'"><div><b>تشغيلة #'+r.no+'</b> <span class="mut">'+E.dmy(r.date)+' · '+esc(name('factories',r.factoryId))+' · '+esc(name('varieties',r.varietyId))+'</span><div class="mut sm">'+N(f0(x.rawKg))+' كجم خام → '+N(f0(x.cartons))+' كرتونة · '+x.rows.length+' مورد</div></div><div class="amt">'+(x.errs.length?'<span class="mut">ناقص</span>':N(f0(x.perTon))+'<small>ج/طن</small>')+'</div></button>'}
+function runRow(r){const x=C.R[r.id];return '<button class="row" data-go="#/run/'+r.id+'"><div><b>تشغيلة #'+r.no+'</b> <span class="mut">'+E.dmy(r.date)+' · '+esc(name('factories',r.factoryId))+' · '+esc(name('varieties',r.varietyId))+'</span><div class="mut sm">'+N(f0(x.rawKg))+' كجم خام → '+N(f0(x.cartons))+' كرتونة · '+x.rows.length+' مورد</div></div><div class="amt">'+(x.errs.length?'<span class="mut">ناقص</span>':N(f0(x.perTon))+'<small>ج/طن</small>'+(x.status!=='final'?'<div class="tag">مبدئي</div>':''))+'</div></button>'}
 
 /* ----- الشراء ----- */
 VIEWS.buy=function(){const t=UI.buyTab;
@@ -89,8 +97,9 @@ VIEWS.run=function(r){const run=get('runs',r.id);if(!run)return empty('التش�
   let h='<div class="vh"><button class="btn sm ghost" data-go="#/runs">رجوع</button><h2>تشغيلة #'+run.no+'</h2><button class="btn sm" data-act="edit" data-k="run" data-id="'+run.id+'">تعديل</button></div>';
   h+='<div class="mut cen">'+E.dmy(run.date)+' · '+esc(name('factories',run.factoryId))+' · '+esc(name('varieties',run.varietyId))+'</div>';
   if(x.errs.length)h+='<div class="err"><b>التكلفة مش مكتملة:</b><ul>'+x.errs.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul></div>';
-  h+='<section class="card sum"><div class="lbl">تكلفة الطن الصادر — كل الموردين</div><div class="big"><span class="egp num">'+f0(x.perTon)+'<i>ج</i></span>'+(x.cmp&&x.cmp.usd?'<span class="usd num">$'+f2(x.perTon/x.cmp.usd)+'</span>':'')+'</div>'+
-    '<div class="kpis">'+kpi('خام داخل',N(f0(x.rawKg))+' كجم')+kpi('إنتاج نهائي',N(f0(x.fin))+' كجم',N(f0(x.cartons))+' كرتونة')+kpi('فرزة',N(f0(x.farz))+' كجم',N(fm(x.farzSacks,1))+' شيكارة')+kpi('هالك',N(f0(x.waste))+' كجم',N(f1(x.yieldWaste))+'%')+kpi('إجمالي التكلفة',N(f0(x.total))+' ج')+kpi(x.method==='joint'?'نصيب الفرزة':'قيمة الفرزة المخصومة',N(f0(x.farzCost))+' ج')+'</div></section>';
+  h+=farzBox(x,run);
+  h+='<section class="card sum"><div class="lbl">تكلفة الطن الصادر — كل الموردين · <b>'+esc(x.status==='final'?'نهائي':'مبدئي')+'</b></div><div class="big"><span class="egp num">'+f0(x.perTon)+'<i>ج</i></span>'+(x.cmp&&x.cmp.usd?'<span class="usd num">$'+f2(x.perTon/x.cmp.usd)+'</span>':'')+'</div>'+
+    '<div class="kpis">'+kpi('خام داخل',N(f0(x.rawKg))+' كجم')+kpi('إنتاج نهائي',N(f0(x.fin))+' كجم',N(f0(x.cartons))+' كرتونة')+kpi('فرزة',N(f0(x.farz))+' كجم',N(fm(x.farzSacks,1))+' شيكارة')+kpi('هالك',N(f0(x.waste))+' كجم',N(f1(x.yieldWaste))+'%')+kpi('إجمالي التكلفة',N(f0(x.total))+' ج')+kpi(x.method==='joint'?'نصيب الفرزة':'قيمة الفرزة المخصومة',N(f0(x.farzCost))+' ج',x.method==='joint'?'':(x.status==='final'?'بيع فعلي':x.status==='provisional'?'فعلي + مؤقت':'المباع بس'))+'</div><div class="hint">'+esc(x.costLabel)+'</div></section>';
   h+='<section class="card"><h2>تكلفة الطن لكل مورد</h2><div class="tw"><table class="t"><tr><th>المورد</th><th>خام كجم</th><th>نهائي كجم</th><th>التكلفة</th><th>ج/طن صادر</th></tr>'+
     x.rows.map(s=>'<tr><td>'+esc(s.name)+'</td><td class="v">'+f0(s.kg)+'</td><td class="v">'+f0(s.fin)+'</td><td class="v">'+f0(s.finCost)+'</td><td class="v b">'+f0(s.perTon)+'</td></tr>').join('')+
     '<tr class="tt"><td>الإجمالي</td><td class="v">'+f0(x.rawKg)+'</td><td class="v">'+f0(x.fin)+'</td><td class="v">'+f0(x.finCost)+'</td><td class="v b">'+f0(x.perTon)+'</td></tr></table></div>'+
@@ -134,7 +143,7 @@ function statement(pid,from,to){const L=C.L[pid]||[];let open=0;const rows=[];le
   let b=open;const out=rows.map(e=>{b+=e.dr-e.cr;dr+=e.dr;cr+=e.cr;return Object.assign({},e,{bal:b})});return{open,rows:out,dr,cr,close:b}}
 
 /* ----- المزيد ----- */
-VIEWS.more=function(){return '<div class="menu">'+[['#/stock','المخزون','إنتاج نهائي وفرزة لكل تشغيلة، الخام، المستلزمات في كل مخزن'],['#/reports','التقارير','تكلفة التشغيلة، المقدر والفعلي، الربحية، كشوف الحساب، المخزون'],['#/master/factories','المصانع والمخازن','الثلاجة العربية، الحسن، الفجر، بوناتيرا…'],['#/master/varieties','الأصناف والتكلفة المقدرة','فراولة وأي صنف تاني، وأرقام التقدير لكل صنف'],['#/master/items','أصناف المستلزمات','الكرتون، الباليت، الكيس…'],['#/settings','الإعدادات','طريقة الفرزة، وزن الكرتونة والشيكارة، سعر الدولار'],['#/backup','النسخة الاحتياطية','حفظ كل البيانات في ملف واسترجاعها']].map(m=>'<button class="row" data-go="'+m[0]+'"><div><b>'+m[1]+'</b><div class="mut sm">'+m[2]+'</div></div><div class="amt">‹</div></button>').join('')+'</div>'};
+VIEWS.more=function(){return '<div class="menu">'+[['#/cloud','الحفظ السحابي والأجهزة','المزامنة بين الموبايل والكمبيوتر، والنسخ اليومية'],['#/stock','المخزون','إنتاج نهائي وفرزة لكل تشغيلة، الخام، المستلزمات في كل مخزن'],['#/reports','التقارير','تكلفة التشغيلة، المقدر والفعلي، الربحية، كشوف الحساب، المخزون'],['#/master/factories','المصانع والمخازن','الثلاجة العربية، الحسن، الفجر، بوناتيرا…'],['#/master/varieties','الأصناف والتكلفة المقدرة','فراولة وأي صنف تاني، وأرقام التقدير لكل صنف'],['#/master/items','أصناف المستلزمات','الكرتون، الباليت، الكيس…'],['#/settings','الإعدادات','طريقة الفرزة، وزن الكرتونة والشيكارة، سعر الدولار'],['#/backup','النسخة الاحتياطية','حفظ كل البيانات في ملف واسترجاعها']].map(m=>'<button class="row" data-go="'+m[0]+'"><div><b>'+m[1]+'</b><div class="mut sm">'+m[2]+'</div></div><div class="amt">‹</div></button>').join('')+'</div>'};
 VIEWS.stock=function(){const t=UI.stockTab;let h='<div class="vh"><button class="btn sm ghost" data-go="#/more">رجوع</button><h2>المخزون</h2><button class="btn sm" data-act="report" data-k="stock">PDF</button></div>';
   h+=seg('stockTab',[['fin','نهائي وفرزة'],['raw','الخام'],['sup','المستلزمات']],t);
   if(t==='fin'){const rows=D.runs.map(r=>({r,x:C.R[r.id]})).filter(o=>o.x.stockFin>0.005||o.x.stockFarz>0.005);
@@ -158,13 +167,19 @@ VIEWS.master=function(r){const k=r.id;const T={factories:['المصانع وال
   return h};
 VIEWS.settings=function(){const s=S();return '<div class="vh"><button class="btn sm ghost" data-go="#/more">رجوع</button><h2>الإعدادات</h2><span></span></div>'+
   '<section class="card"><h2>معاملة الفرزة في التكلفة</h2>'+
-  '<label class="radio"><input type="radio" name="fm" data-set="farzMethod" value="credit"'+(s.farzMethod!=='joint'?' checked':'')+'><div><b>(أ) خصم قيمة الفرزة من تكلفة التشغيلة — الافتراضي</b><div class="mut sm">الفرزة منتج ثانوي: كل التكلفة على الإنتاج النهائي، وبنخصم منها كيلو الفرزة × سعر الفرزة المسجل في التشغيلة. ودي نفس طريقة «تكلفة المجمدات».</div></div></label>'+
+  '<label class="radio"><input type="radio" name="fm" data-set="farzMethod" value="credit"'+(s.farzMethod!=='joint'?' checked':'')+'><div><b>(أ) خصم قيمة الفرزة من تكلفة التشغيلة — الافتراضي</b><div class="mut sm">الفرزة منتج ثانوي: كل التكلفة على الإنتاج النهائي، وبنخصم منها صافي البيع الفعلي للفرزة لعملاء الفرزة. الفرزة اللي لسه ما اتباعتش مالهاش سعر — التكلفة بتفضل «مبدئية» لحد ما تتباع، أو تحط لها سعر مؤقت في التشغيلة. سعر الفرزة في التقدير (15 ج) للتقدير بس.</div></div></label>'+
   '<label class="radio"><input type="radio" name="fm" data-set="farzMethod" value="joint"'+(s.farzMethod==='joint'?' checked':'')+'><div><b>(ب) توزيع التكلفة على النهائي والفرزة بالوزن</b><div class="mut sm">كيلو الفرزة وكيلو النهائي بنفس التكلفة، والهالك محمّل على الاتنين.</div></div></label></section>'+
   '<section class="card"><h2>القيم الافتراضية</h2><div class="grid">'+
   ['cartonKg|وزن الكرتونة الصافي|كجم','sackKg|وزن الشيكارة|كجم','usdRate|سعر الدولار الافتراضي|ج'].map(x=>{const a=x.split('|');return '<div class="f"><label>'+a[1]+'</label><div class="in"><input inputmode="decimal" data-sset="'+a[0]+'" value="'+esc(s[a[0]])+'"><span class="u">'+a[2]+'</span></div></div>'}).join('')+'</div></section>'+
   '<div class="foot">الإصدار '+VER+' · البيانات على الجهاز ده بس (من غير سيرفر ولا باسورد)</div>'};
+VIEWS.cloud=function(){const s=SYNC.state;let h='<div class="vh"><button class="btn sm ghost" data-go="#/more">رجوع</button><h2>الحفظ السحابي</h2><span></span></div>';
+  if(!s.enabled){h+='<section class="card"><p><b>الجهاز ده مش مربوط بالسحابة.</b> البيانات محفوظة عليه بس. افتح «رابط الربط» اللي وصلك (مرة واحدة على كل جهاز)، أو الصق الرابط/الرمز هنا:</p><div class="f full"><div class="in"><input class="txt" id="joinCode" placeholder="الصق رابط الربط أو الرمز" autocomplete="off"></div></div><button class="btn pri wide" data-act="syncJoin">ربط الجهاز</button>'+(s.error?'<div class="err">'+esc(s.error)+'</div>':'')+'</section>';return h}
+  h+='<section class="card sum"><div class="kpis k2">'+kpi('الحالة',s.syncing?'بيزامن…':!s.online?'أوفلاين':s.error?'فيه مشكلة':s.pending?'مستني رفع':'متزامن')+kpi('آخر مزامنة',s.lastSync?N(E.dmy(E.cairoIso(new Date(s.lastSync)))+' '+E.cairoTime(new Date(s.lastSync))):'—')+kpi('تعديلات مستنية رفع',N(s.pending))+kpi('آخر نسخة يومية',s.lastBackup?N(E.dmy(E.cairoIso(new Date(s.lastBackup)))):'لسه')+'</div>'+(s.error?'<div class="err">'+esc(s.error)+'</div>':'')+'<div class="hint">مساحة العمل: '+esc(s.name||'')+' · الأوقات بتوقيت القاهرة</div></section>';
+  h+='<div class="quick q2"><button class="btn pri" data-act="syncNow">زامن دلوقتي</button><button class="btn" data-act="syncLink">ربط جهاز تاني</button></div>';
+  h+='<section class="card"><h2>إزاي بيشتغل</h2><ul class="wl"><li>كل تعديل بيتحفظ على الجهاز فورًا، حتى من غير نت، وبيترفع أول ما النت يرجع.</li><li>الموبايل والكمبيوتر المربوطين بيشوفوا نفس البيانات.</li><li>مفيش حاجة بتتمسح نهائي: المحذوف بيتأرشف، وكل تعديل متسجل في سجل التغييرات على السحابة.</li><li>الدخول برابط ربط سري لكل جهاز (من غير باسورد). خلي الرابط معاك بس — اللي معاه الرابط يقدر يشوف ويعدّل.</li><li>نسخة كاملة (JSON + إكسيل) كل يوم 11 بالليل بتوقيت القاهرة على السحابة.</li></ul></section>';
+  h+='<button class="btn ghost wide" data-act="syncUnlink">فصل الجهاز ده</button>';return h};
 VIEWS.backup=function(){const s=S();return '<div class="vh"><button class="btn sm ghost" data-go="#/more">رجوع</button><h2>النسخة الاحتياطية</h2><span></span></div>'+
-  '<section class="card"><p>كل البيانات محفوظة على الجهاز ده بس. خد نسخة في ملف وابعتها لنفسك (إيميل/درايف/واتساب). ولو غيرت الموبايل، افتح البرنامج على الجديد واسترجع الملف.</p>'+
+  '<section class="card"><p>البيانات بتتحفظ على الجهاز وبتترفع على السحابة أول بأول (لو الجهاز مربوط)، والسحابة بتعمل نسخة كاملة كل يوم الساعة 11 بالليل بتوقيت القاهرة. وتقدر كمان تاخد نسخة في ملف بإيدك هنا.</p>'+
   '<div class="mut">آخر نسخة: '+(s.lastBackup?E.dmy(E.cairoIso(new Date(s.lastBackup)))+' '+E.cairoTime(new Date(s.lastBackup))+' (القاهرة)':'لسه')+'</div>'+
   '<div class="quick q2"><button class="btn pri" data-act="backup">حفظ نسخة (JSON)</button><button class="btn" data-act="restore">استرجاع من ملف</button></div><input type="file" id="restoreFile" accept="application/json,.json" hidden>'+
   '<div class="hint">الاسترجاع بيمسح البيانات الحالية على الجهاز ويحط بيانات الملف مكانها.</div></section>'+
@@ -179,7 +194,7 @@ function fs(label,p,opts,o){o=o||{};return '<div class="f'+(o.full?' full':'')+'
 function fseg(label,p,opts,o){const v=getP(F.d,p);return '<div class="f'+((o||{}).half?'':' full')+'"><label>'+label+'</label><div class="seg in2">'+opts.map(x=>'<button type="button" data-fset="'+p+'" data-v="'+x[0]+'" class="'+(String(v)===String(x[0])?'on':'')+'">'+x[1]+'</button>').join('')+'</div></div>'}
 function sec(t){return '<div class="sec">'+t+'</div>'}
 function openForm(spec){F=spec;F.d=JSON.parse(JSON.stringify(spec.rec));F.isNew=!spec.rec.id;drawForm();$('#sheet').hidden=false;document.body.classList.add('modal');$('#sheet').scrollTop=0}
-function closeForm(){F=null;$('#sheet').hidden=true;$('#sheet').innerHTML='';document.body.classList.remove('modal')}
+function closeForm(){const st=F&&F.staleRender;F=null;if(st)setTimeout(render,0);$('#sheet').hidden=true;$('#sheet').innerHTML='';document.body.classList.remove('modal')}
 function drawForm(){const sc=$('#sheet').scrollTop;$('#sheet').innerHTML='<div class="sh"><div class="shb"><button class="btn sm ghost" data-act="fclose">إلغاء</button><h2>'+F.title+'</h2><button class="btn sm pri" data-act="fsave">حفظ</button></div>'+
   '<div class="shc"><div class="grid">'+F.body(F.d)+'</div><div id="fsum">'+(F.summary?F.summary(F.d):'')+'</div><div id="ferr"></div>'+
   '<div class="actions a2"><button class="btn pri" data-act="fsave">حفظ</button>'+(!F.isNew&&F.del?'<button class="btn danger" data-act="fdel">حذف</button>':'<button class="btn ghost" data-act="fclose">إلغاء</button>')+'</div></div></div>';$('#sheet').scrollTop=sc}
@@ -247,7 +262,7 @@ function estFields(pre){const v=getP(F.d,pre)||{};const L=esc(v.sizeLabel||'ال
   lineBox('مستلزمات وبنود التقدير (ج للطن الصادر)',pre+'.supplies',(l,i,p)=>lin(p+'.name','البند',{txt:1})+lin(p+'.v','ج/طن'),{name:'',v:''},'+ بند')}
 function estSum(v){if(!v)return null;const r=E.fcCalc(v);return ['التكلفة المقدرة للطن',f0(r.total)+' ج','big']}
 FORMS.run=function(rec){const s=S();if(!rec){const v=D.varieties[0];rec={date:today(),no:nextNo('runs'),factoryId:(D.factories[0]||{}).id,varietyId:v&&v.id,inputs:[{purchaseId:'',kg:''}],cartonKg:s.cartonKg||10,farzSackKg:s.sackKg||25,
-    farzPrice:v?v.est.inputs.overPrice:'',supplies:[],costs:[],est:v?JSON.parse(JSON.stringify(v.est)):null}}
+    farzTemp:'',supplies:[],costs:[],est:v?JSON.parse(JSON.stringify(v.est)):null}}
   return{title:rec.id?'تشغيلة #'+rec.no:'تشغيلة جديدة',coll:'runs',rec,del:true,
   body:d=>{const avail=D.purchases.filter(p=>(C.P[p.id].remain>0.5||(d.inputs||[]).some(i=>i.purchaseId===p.id))&&(!d.varietyId||p.varietyId===d.varietyId)).map(p=>[p.id,purchLabel(p)+' — باقي '+f0(C.P[p.id].remain+((get('runs',d.id)||{inputs:[]}).inputs||[]).filter(i=>i.purchaseId===p.id).reduce((a,i)=>a+n(i.kg),0))]);
     const by=!!d.yieldBySupplier;
@@ -255,7 +270,7 @@ FORMS.run=function(rec){const s=S();if(!rec){const v=D.varieties[0];rec={date:to
     sec('الخام الداخل (من فواتير الشراء)')+'<label class="chk full"><input type="checkbox" data-bool="yieldBySupplier"'+(by?' checked':'')+'> الإنتاج متسجل لكل مورد لوحده (كراتين وشكاير فرزة لكل سطر)</label>'+
     lineBox('','inputs',(l,i,p)=>lsel(p+'.purchaseId',avail,'الفاتورة')+lin(p+'.kg','كجم خام')+(by?lin(p+'.cartons','كراتين')+lin(p+'.farzSacks','شكاير فرزة'):''),{purchaseId:'',kg:''},'+ سطر خام')+
     sec('الإنتاج')+(by?'':fi('عدد الكراتين','cartons',{}))+fi('وزن الكرتونة الصافي','cartonKg',{u:'كجم'})+(by?'':fi('شكاير الفرزة','farzSacks',{}))+fi('وزن شيكارة الفرزة','farzSackKg',{u:'كجم'})+(by?'':fi('فرزة سايبة (مش في شكاير)','farzExtraKg',{u:'كجم'}))+
-    fi('سعر كيلو الفرزة','farzPrice',{u:'ج/كجم',hint:S().farzMethod==='joint'?'مش داخل في التكلفة بطريقة التوزيع بالوزن':'بيتخصم من التكلفة (كيلو الفرزة × السعر)'+farzAvgHint(d)})+
+    fi('سعر فرزة مؤقت (اختياري)','farzTemp',{u:'ج/كجم',hint:S().farzMethod==='joint'?'مش محتاجه بطريقة التوزيع بالوزن':farzHint(d)})+
     sec('المستلزمات المصروفة من المخزن')+lineBox('','supplies',(l,i,p)=>lsel(p+'.itemId',itemOpts(),'الصنف')+lin(p+'.qty','الكمية')+lsel(p+'.locId',facOpts(),'المخزن')+'<span class="lt">رصيد '+N(f0(l.itemId?(C.SUP[l.itemId].loc[l.locId||d.factoryId]||0):0))+' · '+N(f2(l.itemId?C.SUP[l.itemId].avg:0))+' ج</span>',{itemId:'',qty:'',locId:d.factoryId||''},'+ مستلزم')+
     sec('تكاليف التشغيل')+lineBox('','costs',(l,i,p)=>lin(p+'.name','البند',{txt:1,list:'costCats'})+lin(p+'.amount','المبلغ ج')+lsel(p+'.partyId',parties(['service','transport','supply','raw']).map(x=>[x.id,x.name]),'على حساب (اختياري)',{newType:'service'}),{name:'',amount:'',partyId:''},'+ بند تكلفة')+
     '<details class="full est"'+(F.openEst?' open':'')+'><summary data-act="toggleEst">التكلفة المقدرة للتشغيلة دي (تتعدل) — '+(d.est?f0(E.fcCalc(d.est).total)+' ج/طن':'')+'</summary><div class="grid">'+(d.est?estFields('est'):'')+'<button type="button" class="btn ghost wide full" data-act="estReset">رجّع تقدير الصنف</button></div></details>'+
@@ -270,12 +285,13 @@ FORMS.run=function(rec){const s=S();if(!rec){const v=D.varieties[0];rec={date:to
     Object.keys(use).forEach(pid=>{const x=C.P[pid];if(!x)return;const av=x.remain+(old[pid]||0);if(use[pid]>av+1e-6)e.push('فاتورة #'+get('purchases',pid).no+': المتاح '+f0(av)+' كجم بس')});
     (d.supplies||[]).forEach((l,i)=>{if(!l.itemId)e.push('مستلزم '+(i+1)+': اختار الصنف');if(!(n(l.qty)>0))e.push('مستلزم '+(i+1)+': الكمية')});
     (d.costs||[]).forEach((l,i)=>{if(!(n(l.amount)>0))e.push('بند تكلفة '+(i+1)+': المبلغ')});
-    const t=tmpCompute('runs',d),x=t.C.R[t.id];x.errs.forEach(m=>{if(!/الفاتورة مش موجودة|الكمية لازم/.test(m))e.push(m)});if(String(d.farzPrice).trim()===''&&S().farzMethod!=='joint'&&x.farz>0)e.push('اكتب سعر كيلو الفرزة');return e},
-  onChange:(d,p)=>{if(p==='varietyId'){const v=get('varieties',d.varietyId);if(v&&confirm('تحط التكلفة المقدرة بتاعة '+v.name+'؟')){d.est=JSON.parse(JSON.stringify(v.est));d.farzPrice=v.est.inputs.overPrice}}
+    const t=tmpCompute('runs',d),x=t.C.R[t.id];x.errs.forEach(m=>{if(!/الفاتورة مش موجودة|الكمية لازم/.test(m))e.push(m)});if(String(d.farzTemp==null?'':d.farzTemp).trim()!==''&&!(E.parse(d.farzTemp)>=0))e.push('السعر المؤقت مكتوب غلط');return e},
+  onChange:(d,p)=>{if(p==='varietyId'){const v=get('varieties',d.varietyId);if(v&&confirm('تحط التكلفة المقدرة بتاعة '+v.name+'؟')){d.est=JSON.parse(JSON.stringify(v.est))}}
     if(p==='factoryId')(d.supplies||[]).forEach(l=>{if(!l.locId)l.locId=d.factoryId})},
   canDel:d=>{if(D.sales.some(s=>(s.lines||[]).some(l=>l.runId===d.id)))return 'فيه مبيعات من التشغيلة دي، امسحها الأول';if(D.transports.some(t=>t.runId===d.id&&!(t.purchaseIds||[]).length))return 'فيه نقلة مربوطة بالتشغيلة';return ''},
   after:rec=>{location.hash='#/run/'+rec.id}}};
-function farzAvgHint(d){if(!d.id)return '';let kg=0,v=0;Object.values(C.SL).forEach(s=>{if(s.kind!=='farz')return;s.lines.forEach(l=>{if(l.runId===d.id){kg+=l.kg;v+=l.egp}})});return kg?' — متوسط بيع الفرزة الفعلي من التشغيلة '+f2(v/kg)+' ج/كجم <button type="button" class="btn sm" data-act="farzAvg" data-v="'+(v/kg)+'">استخدمه</button>':''}
+function farzHint(d){if(!d.id)return 'الفرزة بتتخصم من التكلفة بسعر البيع الفعلي لعملاء الفرزة. لحد ما تتباع، تقدر تكتب هنا سعر مؤقت (التكلفة هتفضل «مبدئي»)، أو تسيبه فاضي.';const x=C.R[d.id];if(!x)return '';
+  return 'اتباع '+f0(x.farzSoldKg)+' كجم من '+f0(x.farz)+(x.farzSoldKg>0.005?' بمتوسط صافي '+f2(x.farzAvg)+' ج/كجم':'')+'. السعر المؤقت بيتطبق بس على الباقي ('+f0(x.farzUnsold)+' كجم)، وبيتجاهل لما الفرزة كلها تتباع.'}
 FORMS.sale=function(rec,o){o=o||{};rec=rec||{date:today(),no:nextNo('sales'),kind:o.kind||'export',cur:(o.kind||'export')==='export'?'USD':'EGP',rate:S().usdRate,customerId:(o.kind||'export')==='export'?((parties(['export'])[0]||{}).id||''):'',lines:[{runId:'',cartons:'',kg:'',price:''}],expenses:[]};
   return{title:rec.id?'بيع #'+rec.no:'بيع جديد',coll:'sales',rec,del:true,
   body:d=>{const ex=d.kind!=='farz';const cs=parties([ex?'export':'farz']);const runs=D.runs.filter(r=>{const x=C.R[r.id];return (ex?x.stockFin:x.stockFarz)>0.005||(d.lines||[]).some(l=>l.runId===r.id)}).map(r=>{const x=C.R[r.id];return [r.id,runLabel(r)+' — متاح '+(ex?f0(x.stockFin/x.cartonKg)+' كرتونة':f0(x.stockFarz)+' كجم')]});
@@ -326,9 +342,13 @@ async function doBackup(){const s=S();const at=new Date().toISOString();const da
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nm;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);toast('النسخة اتحفظت: '+nm)}
 async function doRestore(file){let j;try{j=JSON.parse(await file.text())}catch(e){alert('الملف مش نسخة صالحة');return}
   if(!j||j.app!=='alrashed-strawberry-erp'||!j.data||!Array.isArray(j.data.settings)){alert('الملف ده مش نسخة من البرنامج ده');return}
-  if(!confirm('هيتمسح كل اللي على الجهاز ويتحط مكانه نسخة '+E.dmy(E.cairoIso(new Date(j.exportedAt)))+'. تكمل؟'))return;
-  const nd={};E.COLLS.forEach(c=>nd[c]=Array.isArray(j.data[c])?j.data[c]:[]);if(!nd.settings.length)nd.settings=E.seed().settings;
-  await Store.replaceAll(nd);D=nd;recompute();render();toast('اتسترجعت النسخة')}
+  if(!confirm('البيانات الحالية هتتحط مكانها نسخة '+E.dmy(E.cairoIso(new Date(j.exportedAt)))+' (الحالي بيتأرشف ومش بيتمسح نهائي). تكمل؟'))return;
+  const t=new Date().toISOString(),keep={};E.COLLS.forEach(c=>(Array.isArray(j.data[c])?j.data[c]:[]).forEach(v=>keep[c+':'+v.id]=1));
+  for(const c of E.COLLS)for(const v of D[c].slice())if(!keep[c+':'+v.id])await Store.del(c,v);
+  const list=[];E.COLLS.forEach(c=>(Array.isArray(j.data[c])?j.data[c]:[]).forEach(v=>list.push([c,Object.assign({},v,{updatedAt:t})])));
+  if(!list.some(x=>x[0]==='settings'))list.push(['settings',Object.assign(E.seed().settings[0],{updatedAt:t})]);
+  await Store.putMany(list);await reloadFromStore();if(window.SYNC)SYNC.kick(200);toast('اتسترجعت النسخة')}
+async function reloadFromStore(){D=await Store.loadAll(E.COLLS);if(!D.settings.length){const sd=E.seed();D.settings=sd.settings}recompute();if(F){F.staleRender=true;return}render()}
 
 /* ===== الأحداث ===== */
 document.addEventListener('click',async e=>{const t=e.target.closest('[data-go],[data-act],[data-fset],[data-ladd],[data-ldel]');if(!t)return;
@@ -343,7 +363,11 @@ document.addEventListener('click',async e=>{const t=e.target.closest('[data-go],
   else if(a==='fclose')closeForm();else if(a==='fsave')saveForm();else if(a==='fdel')delForm();
   else if(a==='toggleEst'){F.openEst=!F.openEst}
   else if(a==='estReset'){const v=get('varieties',F.d.varietyId);if(v){F.d.est=JSON.parse(JSON.stringify(v.est));F.openEst=true;drawForm()}}
-  else if(a==='farzAvg'){F.d.farzPrice=Math.round(+t.dataset.v*100)/100;drawForm()}
+  else if(a==='farzTemp'){const r=get('runs',t.dataset.id);if(!r)return;const v=prompt('سعر الفرزة المؤقت للكيلو (ج) للكمية اللي لسه ما اتباعتش — سيبه فاضي عشان تشيله:',r.farzTemp==null?'':r.farzTemp);if(v===null)return;const p=E.parse(v);if(v.trim()!==''&&!(p>=0)){alert('الرقم مش مظبوط');return}const nr=JSON.parse(JSON.stringify(r));nr.farzTemp=v.trim()===''?'':p;await upsert('runs',nr);toast(v.trim()===''?'اتشال السعر المؤقت':'اتحفظ السعر المؤقت')}
+  else if(a==='syncNow'){SYNC.run()}
+  else if(a==='syncLink'){const l=SYNC.link();if(!l)return;try{if(navigator.share){await navigator.share({title:'ربط جهاز — تكاليف الفراولة',text:l});return}}catch(x){if(x&&x.name==='AbortError')return}try{await navigator.clipboard.writeText(l);toast('الرابط اتنسخ')}catch(x){prompt('انسخ الرابط ده:',l)}}
+  else if(a==='syncJoin'){const v=$('#joinCode').value;const ok=await SYNC.join(v);if(ok){toast('الجهاز اتربط');render()}else render()}
+  else if(a==='syncUnlink'){if(confirm('تفصل الجهاز ده عن السحابة؟ البيانات هتفضل على الجهاز بس مش هتتزامن.')){await SYNC.unlink();render()}}
   else if(a==='backup')doBackup();else if(a==='restore')$('#restoreFile').click();
   else if(a==='fltclear'){delete UI.flt[t.dataset.id];render()}
   else if(a==='openref'){const k={purchase:'purchase',transport:'transport',supplyIn:'supplyIn',payment:'payment',sale:'sale',saleExp:'sale'}[t.dataset.kind];if(k&&t.dataset.id)openK(k,t.dataset.id);else if(t.dataset.kind==='runCost')location.hash='#/run/'+t.dataset.id}
@@ -368,8 +392,9 @@ window.addEventListener('hashchange',()=>{window.scrollTo(0,0);render()});
 
 /* ===== البداية ===== */
 async function start(){await Store.init();let d=await Store.loadAll(E.COLLS);
-  if(!d.settings.length){d=E.seed();const list=[];E.COLLS.forEach(c=>d[c].forEach(v=>list.push([c,v])));await Store.putMany(list)}
-  D=d;recompute();render();document.body.classList.add('ready');window.__ready=true}
-window.APP={get D(){return D},get C(){return C},S,get,name,statement,partyLabel,runLabel,balTxt,VER,esc,f0,f2,f1,f3,N,reload:start,upsert};
+  if(!d.settings.length){d=E.seed();const list=[];E.COLLS.forEach(c=>d[c].forEach(v=>list.push([c,v])));await Store.putMany(list,{noOut:true})}
+  D=d;recompute();render();document.body.classList.add('ready');window.__ready=true;
+  if(window.SYNC&&!start.done){start.done=1;SYNC.on(()=>{syncPill();if(route().v==='cloud'&&!F&&!(document.activeElement&&document.activeElement.id==='joinCode'))render()});await SYNC.init(window.APP)}}
+window.APP={reloadFromStore,get D(){return D},get C(){return C},S,get,name,statement,partyLabel,runLabel,balTxt,VER,esc,f0,f2,f1,f3,N,reload:start,upsert};
 start();
 })();

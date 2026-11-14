@@ -15,7 +15,8 @@ function h3(t){return '<h3>'+t+'</h3>'}
 function note(t){return '<div class="rn">'+t+'</div>'}
 function T(title,head,rows,foot,cls){return{table:{title,head,rows,foot,cls:cls||''}}}
 function H(html){return{html}}
-const methodTxt=m=>m==='joint'?'الفرزة: توزيع التكلفة على النهائي والفرزة بالوزن':'الفرزة: قيمتها (كجم × سعر الفرزة) بتتخصم من تكلفة التشغيلة';
+const methodTxt=m=>m==='joint'?'الفرزة: توزيع التكلفة على النهائي والفرزة بالوزن':'الفرزة: صافي بيعها الفعلي بيتخصم من تكلفة التشغيلة';
+function farzWarn(x){if(x.method==='joint'||x.status==='final')return null;return H('<div class="rwarn"><b>⚠ '+esc(x.farzWarn)+'</b> — '+esc(x.costLabel)+'. الفرزة '+f0(x.farz)+' كجم: اتباع '+f0(x.farzSoldKg)+' كجم'+(x.farzSoldKg>0.005?' بمتوسط صافي '+f2(x.farzAvg)+' ج/كجم':'')+'، والباقي '+f0(x.farzUnsold)+' كجم '+(x.status==='provisional'?'بسعر مؤقت '+f2(x.farzTemp)+' ج/كجم':'من غير سعر')+'.</div>')}
 const balTxt=b=>Math.abs(b)<0.005?'0.00':f2(Math.abs(b))+' '+(b>0?'عليه':'له');
 const per=(from,to)=>from||to?('الفترة: '+(from?'من '+E.dmy(from):'من البداية')+' '+(to?'إلى '+E.dmy(to):'إلى اليوم')):'كل الفترات';
 
@@ -24,13 +25,14 @@ BUILD.run=function(o){const app=A(),r=app.get('runs',o.id);if(!r)return null;con
   const vname=app.name('varieties',r.varietyId),fac=app.name('factories',r.factoryId),T1=x.fin/1000;
   const b=[];
   if(x.errs.length)b.push(H('<div class="rerr"><b>التكلفة مش مكتملة:</b> '+x.errs.map(esc).join(' — ')+'</div>'));
-  b.push(H(boxes([['تكلفة الطن الصادر — كل الموردين',f0(x.perTon)+' ج',x.cmp&&x.cmp.usd?'$'+f2(x.perTon/x.cmp.usd)+' (دولار '+f2(x.cmp.usd)+')':'',1],['تكلفة الإنتاج النهائي',f0(x.finCost)+' ج'],['إنتاج نهائي',f0(x.fin)+' كجم',f0(x.cartons)+' كرتونة × '+f2(x.cartonKg)+' كجم'],['خام داخل',f0(x.rawKg)+' كجم',x.rows.length+' مورد']])));
+  const fw=farzWarn(x);if(fw)b.push(fw);
+  b.push(H(boxes([['تكلفة الطن الصادر — '+(x.status==='final'?'نهائي':'مبدئي'),f0(x.perTon)+' ج',x.cmp&&x.cmp.usd?'$'+f2(x.perTon/x.cmp.usd)+' (دولار '+f2(x.cmp.usd)+')':'',1],['تكلفة الإنتاج النهائي',f0(x.finCost)+' ج'],['إنتاج نهائي',f0(x.fin)+' كجم',f0(x.cartons)+' كرتونة × '+f2(x.cartonKg)+' كجم'],['خام داخل',f0(x.rawKg)+' كجم',x.rows.length+' مورد']])));
   b.push(T('الإنتاج من الخام',th(['','الخام','إنتاج نهائي','فرزة','هالك (الفرق)']),[tr([td('كجم'),td(f0(x.rawKg),'v'),td(f0(x.fin),'v'),td(f0(x.farz),'v'),td(f0(x.waste),'v')]),tr([td('النسبة من الخام'),td('100%','v'),td(f1(x.yieldFin)+'%','v'),td(f1(x.yieldFarz)+'%','v'),td(f1(x.yieldWaste)+'%','v')])],'','sm'));
   b.push(T('تكلفة الطن الصادر لكل مورد',th(['المورد','خام كجم','سعر التعاقد','خصم الميزان','سعر فعلي/كجم','نهائي كجم','فرزة كجم','التكلفة الكلية',x.method==='joint'?'نصيب الفرزة':'قيمة الفرزة','ج / طن صادر']),
     x.rows.map(s=>tr([td(esc(s.name)),td(f0(s.kg),'v'),td(f2(s.contractKg),'v'),td(s.kg?f2(s.discKg/s.kg*100)+'%':'-','v'),td(f2(s.effKg),'v'),td(f0(s.fin),'v'),td(f0(s.farz),'v'),td(f0(s.total),'v'),td(f0(s.farzCost),'v'),td(f0(s.perTon),'v b')])),
     tr([td('الإجمالي'),td(f0(x.rawKg),'v'),td(x.rawKg?f2(x.rows.reduce((a,s)=>a+s.contract,0)/x.rawKg):'-','v'),td(x.rawKg?f2(x.discKg/x.rawKg*100)+'%':'-','v'),td(x.rawKg?f2(x.rawCost/x.rawKg):'-','v'),td(f0(x.fin),'v'),td(f0(x.farz),'v'),td(f0(x.total),'v'),td(f0(x.farzCost),'v'),td(f0(x.perTon),'v b')],'tt'),'xs'));
   if(x.cmp)b.push(H(boxes([['التكلفة المقدرة للطن',f0(x.cmp.eT)+' ج'],['الفعلية',f0(x.cmp.aT)+' ج'],['الفرق',sg(x.cmp.v)+' ج',x.cmp.eT?f1(x.cmp.v/x.cmp.eT*100)+'%':'']])));
-  b.push(H(note(methodTxt(x.method)+(x.method==='joint'?'':' — سعر الفرزة '+f2(x.fp)+' ج/كجم')+'. التكاليف المشتركة (مستلزمات + تكاليف تشغيل + نقل على التشغيلة = '+f0(x.shared)+' ج) متوزعة على الموردين بنسبة كيلو الخام. '+(x.bySup?'الإنتاج والفرزة متسجلين لكل مورد.':'الإنتاج والفرزة متوزعين على الموردين بنسبة الخام لأنهم مش متسجلين لكل مورد.')+' خصم الميزان وفّر '+f0(x.discSave)+' ج ('+f0(x.discKg)+' كجم) ومحسوب في سعر الكيلو الفعلي.')));
+  b.push(H(note(methodTxt(x.method)+(x.method==='joint'?'':' — '+x.costLabel+(x.farz>0?' (قيمة الفرزة '+f0(x.credit)+' ج = '+f2(x.fp)+' ج/كجم في المتوسط)':''))+'. التكاليف المشتركة (مستلزمات + تكاليف تشغيل + نقل على التشغيلة = '+f0(x.shared)+' ج) متوزعة على الموردين بنسبة كيلو الخام. '+(x.bySup?'الإنتاج والفرزة متسجلين لكل مورد.':'الإنتاج والفرزة متوزعين على الموردين بنسبة الخام لأنهم مش متسجلين لكل مورد.')+' خصم الميزان وفّر '+f0(x.discSave)+' ج ('+f0(x.discKg)+' كجم) ومحسوب في سعر الكيلو الفعلي.')));
   /* التفاصيل */
   const rows=[];const line=(nm,v,c)=>rows.push(tr([td(nm),td(f2(v),'v'),td(T1?f0(v/T1):'-','v'),td(x.total?f1(v/x.total*100)+'%':'-','v')],c));
   rows.push(tr([td('شراء الخام'),td(f2(x.rawCost),'v'),td(T1?f0(x.rawCost/T1):'-','v'),td(x.total?f1(x.rawCost/x.total*100)+'%':'','v')],'g'));
@@ -41,8 +43,10 @@ BUILD.run=function(o){const app=A(),r=app.get('runs',o.id);if(!r)return null;con
   rows.push(tr([td('تكاليف التشغيل'),td(f2(x.costsT),'v'),td(T1?f0(x.costsT/T1):'-','v'),td(x.total?f1(x.costsT/x.total*100)+'%':'','v')],'g'));
   x.costs.forEach(c=>line('&nbsp;&nbsp;'+esc(c.name)+(c.partyId?' — '+esc(app.name('parties',c.partyId)):''),c.amount));
   rows.push(tr([td('إجمالي تكلفة التشغيلة'),td(f2(x.total),'v'),td(T1?f0(x.total/T1):'-','v'),td('100%','v')],'tt'));
-  rows.push(tr([td(x.method==='joint'?'− نصيب الفرزة بالوزن ('+f0(x.farz)+' كجم × '+f3(x.farzKgCost)+')':'− قيمة الفرزة ('+f0(x.farz)+' كجم × '+f2(x.fp)+')'),td(f2(-x.farzCost),'v'),td(T1?f0(-x.farzCost/T1):'-','v'),td('','v')]));
-  rows.push(tr([td('تكلفة الإنتاج النهائي'),td(f2(x.finCost),'v'),td(f0(x.perTon),'v b'),td('','v')],'tt'));
+  if(x.method==='joint')rows.push(tr([td('− نصيب الفرزة بالوزن ('+f0(x.farz)+' كجم × '+f3(x.farzKgCost)+')'),td(f2(-x.farzCost),'v'),td(T1?f0(-x.farzCost/T1):'-','v'),td('','v')]));
+  else{(x.farzSales||[]).forEach(z=>rows.push(tr([td('− فرزة مباعة: بيع #'+z.no+' '+E.dmy(z.date)+' — '+f0(z.kg)+' كجم (صافي '+f2(z.kg?z.net/z.kg:0)+' ج/كجم)'),td(f2(-z.net),'v'),td(T1?f0(-z.net/T1):'-','v'),td('','v')])));
+    if(x.farzUnsold>0.005)rows.push(tr([td(x.status==='provisional'?'− فرزة باقية '+f0(x.farzUnsold)+' كجم × سعر مؤقت '+f2(x.farzTemp):'فرزة باقية '+f0(x.farzUnsold)+' كجم — لسه مالهاش سعر (مش مخصومة)'),td(f2(x.status==='provisional'?-x.farzUnsold*x.farzTemp:0),'v'),td(T1&&x.status==='provisional'?f0(-x.farzUnsold*x.farzTemp/T1):'-','v'),td('','v')]))}
+  rows.push(tr([td('تكلفة الإنتاج النهائي ('+(x.status==='final'?'نهائي':'مبدئي')+')'),td(f2(x.finCost),'v'),td(f0(x.perTon),'v b'),td('','v')],'tt'));
   b.push(T('تفاصيل التكلفة',th(['البند','المبلغ ج','ج / طن صادر','من الإجمالي']),rows,'','sm'));
   b.push(T('توزيع التكلفة على الموردين',th(['المورد','نسبة الخام','الخام ج','النقل ج','نصيب المشترك ج','الإجمالي ج',x.method==='joint'?'كجم للنهائي':'− الفرزة ج','للنهائي ج']),
     x.rows.map(s=>tr([td(esc(s.name)),td(f1(s.share*100)+'%','v'),td(f0(s.rawCost),'v'),td(f0(s.trans),'v'),td(f0(s.shared),'v'),td(f0(s.total),'v'),td(x.method==='joint'?f0(s.fin):f0(-s.credit),'v'),td(f0(s.finCost),'v b')])),
@@ -56,11 +60,11 @@ function cmpBlocks(x){const c=x.cmp,b=[];
   b.push(T('المقدر والفعلي — ج للطن الصادر',th(['البند','مقدر','فعلي','الفرق','%']),c.lines.filter(l=>Math.abs(l.a)>0.005||Math.abs(l.e)>0.005).map(l=>tr([td(esc(l.name)),td(f0(l.e),'v'),td(f0(l.a),'v'),td(sg(l.v),'v b'),td(l.e?f1(l.v/l.e*100)+'%':'-','v')])),
     tr([td('إجمالي الطن'),td(f0(c.eT),'v'),td(f0(c.aT),'v'),td(sg(c.v),'v b'),td(c.eT?f1(c.v/c.eT*100)+'%':'-','v')],'tt'),'sm'));
   b.push(T('أسباب الفرق (المؤشرات)',th(['المؤشر','مقدر','فعلي','الفرق']),c.drivers.map(d=>tr([td(d.name),td(fm(d.e,d.d)+' '+d.u,'v'),td(fm(d.a,d.d)+' '+d.u,'v'),td((d.a-d.e>0?'+':'')+fm(d.a-d.e,d.d),'v b')])),'','sm'));
-  b.push(H(note('المقارنة على أساس نموذج «تكلفة المجمدات»: شراء الخام = سعر الكيلو الفعلي × 1000، والهالك والفرزة (فرق سعرها) والنقل والمستلزمات كل واحد للطن الصادر. البنود اللي مالهاش تقدير (زي التجميد والتخزين) مقدرها صفر.'+(x.method==='joint'?' تكلفة الطن في التقرير ده بطريقة التوزيع بالوزن، لكن المقارنة بطريقة خصم الفرزة عشان تبقى على نفس أساس التقدير.':''))));
+  b.push(H(note('المقارنة على أساس نموذج «تكلفة المجمدات»: شراء الخام = سعر الكيلو الفعلي × 1000، والهالك والفرزة (فرق سعرها) والنقل والمستلزمات كل واحد للطن الصادر. البنود اللي مالهاش تقدير (زي التجميد والتخزين) مقدرها صفر. سعر الفرزة في التقدير تقديري، وفي الفعلي هو صافي البيع لعملاء الفرزة (أو السعر المؤقت للباقي).'+(x.method==='joint'?' تكلفة الطن في التقرير ده بطريقة التوزيع بالوزن، لكن المقارنة بطريقة خصم الفرزة عشان تبقى على نفس أساس التقدير.':''))));
   return b}
 BUILD.cmp=function(o){const app=A(),r=app.get('runs',o.id);if(!r)return null;const x=app.C.R[r.id];
-  const b=[];if(!x.cmp)b.push(H('<div class="rerr">لازم يبقى فيه خام وإنتاج نهائي عشان المقارنة.</div>'));
-  else{b.push(H(boxes([['المقدر للطن',f0(x.cmp.eT)+' ج'],['الفعلي للطن',f0(x.cmp.aT)+' ج','',1],['الفرق للطن',sg(x.cmp.v)+' ج',x.cmp.eT?f1(x.cmp.v/x.cmp.eT*100)+'%':''],['الفرق على الإنتاج',sg(x.cmp.v*x.fin/1000)+' ج',f3(x.fin/1000)+' طن']])));cmpBlocks(x).forEach(z=>b.push(z));
+  const b=[];const fw=farzWarn(x);if(fw)b.push(fw);if(!x.cmp)b.push(H('<div class="rerr">لازم يبقى فيه خام وإنتاج نهائي عشان المقارنة.</div>'));
+  else{b.push(H(boxes([['المقدر للطن',f0(x.cmp.eT)+' ج'],['الفعلي للطن'+(x.status==='final'?'':' (مبدئي)'),f0(x.cmp.aT)+' ج','',1],['الفرق للطن',sg(x.cmp.v)+' ج',x.cmp.eT?f1(x.cmp.v/x.cmp.eT*100)+'%':''],['الفرق على الإنتاج',sg(x.cmp.v*x.fin/1000)+' ج',f3(x.fin/1000)+' طن']])));cmpBlocks(x).forEach(z=>b.push(z));
     b.push(T('لكل مورد',th(['المورد','ج/طن فعلي','الفرق عن المقدر']),x.rows.map(s=>tr([td(esc(s.name)),td(f0(s.perTon),'v'),td(sg(s.perTon-x.cmp.eT),'v b')])),'','sm'))}
   return{title:'المقدر والفعلي — تشغيلة #'+r.no,meta:E.dmy(r.date)+' · '+esc(app.name('factories',r.factoryId))+' · '+esc(app.name('varieties',r.varietyId)),blocks:b,file:'estimate-vs-actual-'+r.no}};
 BUILD.profit=function(o){const app=A(),D=app.D,C=app.C;const inP=s=>(!o.from||s.date>=o.from)&&(!o.to||s.date<=o.to);
@@ -68,7 +72,8 @@ BUILD.profit=function(o){const app=A(),D=app.D,C=app.C;const inP=s=>(!o.from||s.
   let rev=0,cogs=0,exp=0;const byC={},byR={};
   sales.forEach(s=>{const x=C.SL[s.id];rev+=x.rev;cogs+=x.cogs;exp+=x.exp;const c=byC[s.customerId]=byC[s.customerId]||{rev:0,cogs:0,exp:0,kg:0,n:0};c.rev+=x.rev;c.cogs+=x.cogs;c.exp+=x.exp;c.kg+=x.kg;c.n++;
     x.lines.forEach(l=>{const r=byR[l.runId]=byR[l.runId]||{rev:0,cogs:0,exp:0,fin:0,farz:0};const ex=x.rev?x.exp*l.egp/x.rev:0;r.rev+=l.egp;r.cogs+=l.cogs;r.exp+=ex;r[x.kind==='farz'?'farz':'fin']+=l.kg})});
-  const pr=rev-cogs-exp,b=[];
+  const pr=rev-cogs-exp,b=[];const prov=Object.keys(byR).map(id=>C.R[id]).filter(x=>x&&x.method!=='joint'&&x.status!=='final');
+  if(prov.length)b.push(H('<div class="rwarn"><b>⚠ سعر الفرزة لسه ما اتحددش — التكلفة مبدئية</b> في التشغيلات: '+prov.map(x=>'#'+x.no+' ('+esc(x.costLabel)+')').join('، ')+'. الربح هيتغير لما الفرزة تتباع.</div>'));
   b.push(H(boxes([['صافي الربح',f0(pr)+' ج',rev?f1(pr/rev*100)+'% من المبيعات':'',1],['المبيعات',f0(rev)+' ج',sales.length+' عملية'],['تكلفة البضاعة المباعة',f0(cogs)+' ج'],['مصروفات البيع',f0(exp)+' ج']])));
   b.push(T('الربحية لكل عميل',th(['العميل','النوع','العمليات','كجم','المبيعات','التكلفة','المصروفات','الربح','%']),Object.keys(byC).map(id=>{const c=byC[id],p=app.get('parties',id)||{},q=c.rev-c.cogs-c.exp;return tr([td(esc(p.name||'—')),td(E.PTYPES[p.type]||''),td(c.n,'v'),td(f0(c.kg),'v'),td(f0(c.rev),'v'),td(f0(c.cogs),'v'),td(f0(c.exp),'v'),td(f0(q),'v b'),td(c.rev?f1(q/c.rev*100)+'%':'-','v')])}),
     tr([td('الإجمالي'),td(''),td(sales.length,'v'),td(f0(sales.reduce((a,s)=>a+C.SL[s.id].kg,0)),'v'),td(f0(rev),'v'),td(f0(cogs),'v'),td(f0(exp),'v'),td(f0(pr),'v b'),td(rev?f1(pr/rev*100)+'%':'-','v')],'tt'),'xs'));
@@ -77,7 +82,7 @@ BUILD.profit=function(o){const app=A(),D=app.D,C=app.C;const inP=s=>(!o.from||s.
     return tr([td(E.dmy(s.date),'v'),td(s.no,'v'),td(esc(app.name('parties',s.customerId))),td(x.kind==='farz'?'فرزة':'تصدير'),td(f0(x.kg),'v'),td(pz,'v'),td(f0(x.rev),'v'),td(f0(x.cogs),'v'),td(f0(x.exp),'v'),td(f0(x.profit),'v b'),td(f1(x.margin)+'%','v')])}),'','xs'));
   const det=[];sales.forEach(s=>{const x=C.SL[s.id];x.lines.forEach(l=>det.push(tr([td('#'+s.no),td('تشغيلة #'+(l.runNo||'?')),td(f0(l.kg),'v'),td(f3(l.kgCost),'v'),td(f0(l.cogs),'v'),td(f0(l.egp),'v')])));x.exps.forEach(e=>det.push(tr([td('#'+s.no),td('مصروف: '+esc(e.name)),td(''),td(''),td(f0(e.amount),'v'),td('')])))});
   b.push(T('تخصيص التكلفة على كل بيع',th(['البيع','من','كجم','تكلفة الكيلو','التكلفة ج','الإيراد ج']),det,'','xs'));
-  b.push(H(note('تكلفة البضاعة المباعة = الكمية × تكلفة الكيلو في التشغيلة اللي البيع طالع منها (النهائي بتكلفة الطن الصادر، والفرزة '+(C.method==='joint'?'بنفس تكلفة الكيلو بالوزن':'بسعر الفرزة المخصوم من التكلفة')+'). مصروفات البيع متوزعة على سطور البيع بنسبة الإيراد. المبيعات بالدولار متحولة بسعر الدولار المسجل في البيع.')));
+  b.push(H(note('تكلفة البضاعة المباعة = الكمية × تكلفة الكيلو في التشغيلة اللي البيع طالع منها (النهائي بتكلفة الطن الصادر، والفرزة '+(C.method==='joint'?'بنفس تكلفة الكيلو بالوزن':'بمتوسط صافي بيعها، فربح الفرزة الإجمالي صفر لأن قيمتها اتخصمت من تكلفة النهائي')+'). مصروفات البيع متوزعة على سطور البيع بنسبة الإيراد. المبيعات بالدولار متحولة بسعر الدولار المسجل في البيع.')));
   return{title:'تقرير الربحية',meta:per(o.from,o.to)+' · '+methodTxt(C.method),blocks:b,file:'profitability'}};
 BUILD.stmt=function(o){const app=A(),p=app.get('parties',o.id);if(!p)return null;const st=app.statement(p.id,o.from,o.to);const b=[];
   b.push(H('<div class="rinfo"><div><b>'+esc(p.name)+'</b>'+(p.nameEn?' — '+esc(p.nameEn):'')+'</div><div>'+E.PTYPES[p.type]+(p.cr?' · سجل تجاري '+esc(p.cr):'')+(p.tax?' · بطاقة ضريبية '+esc(p.tax):'')+(p.address?' · '+esc(p.address):'')+(p.phone?' · '+esc(p.phone):'')+'</div></div>'));

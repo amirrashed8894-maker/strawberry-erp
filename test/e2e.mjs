@@ -46,7 +46,7 @@ for(const c of await p.$$(S+'input[data-chk="purchaseIds"]'))await c.check();awa
 await newK('run');await fill('date','11/11/2026');await sel('factoryId','الثلاجة العربية');
 await selPart('inputs.0.purchaseId','تجريبي مورد خام أ');await fill('inputs.0.kg',10000);await add('inputs');await selPart('inputs.1.purchaseId','تجريبي مورد خام ب');await fill('inputs.1.kg',8000);
 await fill('cartons',1500);await fill('farzSacks',80);
-ok('سعر الفرزة الافتراضي 15 من التقدير',await p.inputValue(S+'input[data-p="farzPrice"]')==='15');
+ok('مفيش سعر فرزة افتراضي من التقدير (السعر المؤقت فاضي)',await p.inputValue(S+'input[data-p="farzTemp"]')==='');
 await add('supplies');await selPart('supplies.0.itemId','كرتون');await fill('supplies.0.qty',1500);
 await add('supplies');await selPart('supplies.1.itemId','باليت');await fill('supplies.1.qty',15);
 await add('supplies');await selPart('supplies.2.itemId','استرتش');await fill('supplies.2.qty',8);
@@ -78,13 +78,21 @@ const R=await p.evaluate(()=>{const C=APP.C,D=APP.D;const r=C.R[D.runs[0].id];co
    cartonsLeft:C.SUP[D.items[0].id].loc}});
 fs.writeFileSync(OUT+'/numbers.json',JSON.stringify(R,null,1));
 const near=(a,b)=>Math.abs(a-b)<0.01;
-ok('تكلفة الطن الإجمالية 37,417.33',near(R.perTon,37417.3333),R.perTon);
-ok('مورد أ 36,532.00',near(R.rows[0].perTon,36532),R.rows[0].perTon);ok('مورد ب 38,524.00',near(R.rows[1].perTon,38524),R.rows[1].perTon);
+ok('تكلفة الطن المبدئية (قبل خصم 500 كجم فرزة باقية) 37,617.33',near(R.perTon,37617.3333),R.perTon);
+ok('مورد أ 36,732.00',near(R.rows[0].perTon,36732),R.rows[0].perTon);ok('مورد ب 38,724.00',near(R.rows[1].perTon,38724),R.rows[1].perTon);
 ok('إجمالي التكلفة 591,260',near(R.total,591260));ok('المستلزمات 30,060 (كرتون بمتوسط 16.5)',near(R.sup,30060));ok('هالك 1,000',near(R.waste,1000));
-ok('المقدر 36,431.54',near(R.cmpE,36431.541));ok('الفرق +985.79',near(R.cmpA-R.cmpE,985.792),R.cmpA-R.cmpE);
-ok('ربح بيع فوسجا 169,826.67',near(R.sales[0].profit,169826.6667));ok('ربح الفرزة 4,500',near(R.sales[1].profit,4500));ok('ربح التشغيلة 174,326.67',near(R.runProfit,174326.6667));
+ok('المقدر 36,431.54',near(R.cmpE,36431.541));ok('الفرق +1,185.79',near(R.cmpA-R.cmpE,1185.792),R.cmpA-R.cmpE);
+ok('ربح بيع فوسجا (مبدئي) 167,826.67',near(R.sales[0].profit,167826.6667));ok('ربح الفرزة صفر (اتخصمت من التكلفة)',near(R.sales[1].profit,0));ok('ربح التشغيلة 167,826.67',near(R.runProfit,167826.6667));
 ok('أرصدة',near(R.bal.A,-74400)&&near(R.bal.B,0)&&near(R.bal.tr,-6000)&&near(R.bal.sp,-20050)&&near(R.bal.sv,-42000)&&near(R.bal.fz,0)&&near(R.bal.fu,150000),JSON.stringify(R.bal));
 ok('مخزون باقي 5,000 نهائي و500 فرزة',near(R.stockFin,5000)&&near(R.stockFarz,500));
+// 8b) تحذير الفرزة
+await go('#/run/'+(await p.evaluate(()=>APP.D.runs[0].id)));await p.waitForTimeout(300);
+const wtxt=await p.textContent('#main');ok('تحذير «سعر الفرزة لسه ما اتحددش» في شاشة التشغيلة',wtxt.includes('سعر الفرزة لسه ما اتحددش — التكلفة مبدئية')&&wtxt.includes('قبل خصم الفرزة غير المباعة (500 كجم)'));
+await p.evaluate(()=>document.querySelector('#toast').classList.remove('on'));await p.screenshot({path:OUT+'/run_farz_warning.png'});
+await go('#/home');ok('التحذير في الرئيسية',(await p.textContent('#main')).includes('سعر الفرزة لسه ما اتحددش'));
+await go('#/run/'+(await p.evaluate(()=>APP.D.runs[0].id)));promptAns='15';await p.click('[data-act="farzTemp"]');await p.waitForTimeout(400);promptAns=null;
+let T2=await p.evaluate(()=>{const r=APP.C.R[APP.D.runs[0].id];return{st:r.status,perTon:r.perTon,label:r.costLabel}});ok('سعر مؤقت 15 → مبدئي 37,117.33',T2.st==='provisional'&&near(T2.perTon,37117.3333)&&T2.label.includes('مؤقت 15.00'),JSON.stringify(T2));
+await p.screenshot({path:OUT+'/run_farz_provisional.png'});
 // 9) العرض والتقارير
 await go('#/home');await p.waitForTimeout(200);await p.screenshot({path:OUT+'/home.png'});
 await go('#/acc');await p.screenshot({path:OUT+'/acc.png',fullPage:true});
@@ -98,14 +106,21 @@ const shotRep=async(kind,opt,name)=>{await p.evaluate(([k,o])=>RPT.open(k,o),[ki
   await p.evaluate(()=>RPT.close());return n};
 await p.waitForFunction(()=>window.html2canvas&&window.jspdf);
 for(const [k,o,nm] of [['run',{id:rid},'run_cost'],['cmp',{id:rid},'estimate_vs_actual'],['profit',{},'profitability'],['stmt',{id:fid},'statement_fussga'],['stock',{},'stock']]){const n=await shotRep(k,o,nm);ok('تقرير '+nm+' اتعمل ('+n+' صفحة)',n>0)}
+// 9b) بيع باقي الفرزة → نهائي
+await newK('sale',JSON.stringify({kind:'farz'}));await fill('date','13/11/2026');await sel('customerId','تجريبي عميل فرزة');await selPart('lines.0.runId','#1');await fill('lines.0.kg',500);await fill('lines.0.price',16);await save();
+T2=await p.evaluate(()=>{const r=APP.C.R[APP.D.runs[0].id];return{st:r.status,perTon:r.perTon,label:r.costLabel,a:r.rows[0].perTon,b:r.rows[1].perTon,fu:Object.values(APP.C.SL)[0].profit}});
+ok('بعد بيع كل الفرزة → نهائي 37,084.00 (السعر المؤقت اتجاهل)',T2.st==='final'&&near(T2.perTon,37084)&&T2.label==='نهائي',JSON.stringify(T2));
+ok('نهائي لكل مورد: أ 36,198.67 · ب 38,190.67',near(T2.a,36198.6667)&&near(T2.b,38190.6667));ok('ربح فوسجا النهائي 173,160',near(T2.fu,550000-10000*37.084-6000),T2.fu);
+await go('#/run/'+(await p.evaluate(()=>APP.D.runs[0].id)));ok('التحذير اختفى بعد البيع',!(await p.textContent('#main')).includes('لسه ما اتحددش'));
+await p.evaluate(([k,o])=>RPT.open(k,o),['run',{id:rid}]);await p.waitForFunction(()=>window.__repReady);{const pdf=await p.evaluate(async()=>(await RPT.makePdf()).output('datauristring'));fs.writeFileSync(OUT+'/run_cost_final.pdf',Buffer.from(pdf.split(',')[1],'base64'))}await p.evaluate(()=>RPT.close());
 // 10) التخزين بعد إعادة التحميل
-await p.reload();await p.waitForFunction(()=>window.__ready);ok('البيانات باقية بعد إعادة الفتح (IndexedDB)',await p.evaluate(()=>APP.D.runs.length===1&&APP.D.sales.length===2&&APP.D.payments.length===6));
+await p.reload();await p.waitForFunction(()=>window.__ready);ok('البيانات باقية بعد إعادة الفتح (IndexedDB)',await p.evaluate(()=>APP.D.runs.length===1&&APP.D.sales.length===3&&APP.D.payments.length===6));
 // 11) نسخة احتياطية واسترجاع
 await go('#/backup');const [dl]=await Promise.all([p.waitForEvent('download'),p.click('[data-act="backup"]')]);const bp=OUT+'/backup_test.json';await dl.saveAs(bp);
 const bj=JSON.parse(fs.readFileSync(bp,'utf8'));ok('ملف النسخة فيه كل البيانات',bj.app==='alrashed-strawberry-erp'&&bj.data.runs.length===1&&bj.data.purchases.length===2,dl.suggestedFilename());
 const ctx2=await b.newContext(WK?{...devices['iPhone 13'],locale:'ar-EG',timezoneId:'Africa/Cairo'}:{viewport:{width:390,height:844},locale:'ar-EG',timezoneId:'Africa/Cairo'});await routeLocal(ctx2);const p2=await ctx2.newPage();p2.on('dialog',d=>d.accept());
 await p2.goto(BASE+'#/backup');await p2.waitForFunction(()=>window.__ready);ok('جهاز جديد يبدأ بالأساسيات بس',await p2.evaluate(()=>APP.D.runs.length===0&&APP.D.parties.length===1&&APP.D.factories.length===4&&APP.D.items.length===9&&APP.D.varieties.length===4));
-await p2.setInputFiles('#restoreFile',bp);await p2.waitForTimeout(800);ok('الاسترجاع رجّع نفس الأرقام',await p2.evaluate(()=>Math.abs(APP.C.R[APP.D.runs[0].id].perTon-37417.3333)<0.01));
+await p2.setInputFiles('#restoreFile',bp);await p2.waitForTimeout(800);ok('الاسترجاع رجّع نفس الأرقام',await p2.evaluate(()=>Math.abs(APP.C.R[APP.D.runs[0].id].perTon-37084)<0.01));
 // 12) تغيير طريقة الفرزة (توزيع بالوزن) ثم الرجوع
 await go('#/settings');await p.check('input[value="joint"]');await p.waitForTimeout(200);const J=await p.evaluate(()=>{const r=APP.C.R[APP.D.runs[0].id];return{perTon:r.perTon,farzKg:r.farzKgCost,rows:r.rows.map(s=>s.perTon)}});
 ok('طريقة التوزيع بالوزن: 591,260/17,000 = 34.78 ج/كجم',near(J.perTon,591260/17000*1000)&&near(J.farzKg,591260/17000),JSON.stringify(J));

@@ -41,8 +41,9 @@ const PTYPES={raw:'مورد خام',supply:'مورد مستلزمات',transport
 const COLLS=['settings','factories','varieties','items','parties','purchases','transports','payments','supplyIn','transfers','runs','sales'];
 
 function nowIso(){return new Date().toISOString()}
+const SEED_T='2000-01-01T00:00:00.000Z';
 function seed(){
-  const t=nowIso(),D={};COLLS.forEach(c=>D[c]=[]);
+  const t=SEED_T,D={};COLLS.forEach(c=>D[c]=[]);
   D.settings.push({id:'main',farzMethod:'credit',cartonKg:10,sackKg:25,usdRate:52,lastBackup:null,changedSince:false,createdAt:t,updatedAt:t});
   FACTORIES.forEach((x,i)=>D.factories.push({id:'fac'+(i+1),name:x,createdAt:t,updatedAt:t}));
   VARIETIES.forEach((x,i)=>{const e=fcDefaults(x);delete e.name;D.varieties.push({id:'var'+(i+1),name:x,est:e,estNeeds:i>0,createdAt:t,updatedAt:t})});
@@ -98,9 +99,14 @@ function compute(D){
       (issue[e.run]=issue[e.run]||[])[e.ix]={itemId:e.item,qty:e.q,avg,cost,loc:e.loc,short,noPrice:!(avg>0)}}});
   Object.values(SUP).forEach(s=>{s.avg=s.qty>1e-9?s.val/s.qty:(s.last||s.ref||0)});
 
+  /* مبيعات الفرزة الفعلية لكل تشغيلة (صافي بعد مصروفات البيع) — ده اللي بيتخصم من التكلفة، مش سعر التقدير */
+  const FS={};
+  D.sales.forEach(s=>{if(s.kind!=='farz')return;const rate=s.cur==='USD'?n(s.rate):1;const L=(s.lines||[]).map(l=>({runId:l.runId,kg:n(l.kg),rev:n(l.kg)*n(l.price)*rate}));
+    const rev=L.reduce((a,l)=>a+l.rev,0),exp=(s.expenses||[]).reduce((a,e)=>a+n(e.amount),0);
+    L.forEach(l=>{const f=FS[l.runId]=FS[l.runId]||{kg:0,rev:0,net:0,sales:[]};const net=l.rev-(rev?exp*l.rev/rev:(L.length?exp/L.length:0));f.kg+=l.kg;f.rev+=l.rev;f.net+=net;f.sales.push({saleId:s.id,no:s.no,date:s.date,kg:l.kg,rev:l.rev,net})})});
   /* التشغيلات */
   const R={};
-  D.runs.forEach(r=>{R[r.id]=runCost(r,{P,PT,IT,S,method,issue:issue[r.id]||[],runTrans:runTrans[r.id]||[]})});
+  D.runs.forEach(r=>{R[r.id]=runCost(r,{P,PT,IT,S,method,issue:issue[r.id]||[],runTrans:runTrans[r.id]||[],farzSold:FS[r.id]})});
 
   /* المبيعات */
   const SL={},sold={};D.runs.forEach(r=>sold[r.id]={fin:0,farz:0});
@@ -110,7 +116,7 @@ function compute(D){
   Object.values(R).forEach(r=>{r.sales={rev:0,cogs:0,exp:0,profit:0,finRev:0,farzRev:0}});
   Object.values(SL).forEach(x=>x.lines.forEach(l=>{const r=R[l.runId];if(!r)return;const ex=x.rev?x.exp*l.egp/x.rev:(x.lines.length?x.exp/x.lines.length:0);
     r.sales.rev+=l.egp;r.sales.cogs+=l.cogs;r.sales.exp+=ex;r.sales[x.kind==='farz'?'farzRev':'finRev']+=l.egp}));
-  Object.values(R).forEach(r=>{r.sales.profit=r.sales.rev-r.sales.cogs-r.sales.exp;r.stockVal=r.stockFin*r.finKgCost+r.stockFarz*r.farzKgCost});
+  Object.values(R).forEach(r=>{r.sales.profit=r.sales.rev-r.sales.cogs-r.sales.exp;r.stockVal=r.stockFin*r.finKgCost+r.stockFarz*r.farzStockKg});
 
   /* الحسابات */
   const L={};D.parties.forEach(p=>{L[p.id]=[];const o=n(p.open);if(o)L[p.id].push({date:'',ord:0,kind:'open',desc:'رصيد أول المدة',dr:p.openSide==='c'?0:o,cr:p.openSide==='c'?o:0})});
@@ -128,7 +134,9 @@ function compute(D){
 }
 
 function runCost(r,c){
-  const S=c.S,cartonKg=n(r.cartonKg)||n(S.cartonKg)||10,farzSackKg=n(r.farzSackKg)||n(S.sackKg)||25,fp=n(r.farzPrice);
+  const S=c.S,cartonKg=n(r.cartonKg)||n(S.cartonKg)||10,farzSackKg=n(r.farzSackKg)||n(S.sackKg)||25;
+  const tempRaw=String(r.farzTemp==null?'':r.farzTemp).trim(),temp=tempRaw===''||!isFinite(parse(tempRaw))?null:parse(tempRaw);
+  const fsd=c.farzSold||{kg:0,rev:0,net:0,sales:[]};
   const errs=[];
   /* تجميع المدخلات حسب المورد */
   const sup={},order=[];
@@ -153,15 +161,27 @@ function runCost(r,c){
   const runTrans=(c.runTrans||[]).reduce((a,x)=>a+x.amt,0);
   const shared=suppliesT+costsT+runTrans;
   const rawCost=rows.reduce((a,s)=>a+s.rawCost,0),trans=rows.reduce((a,s)=>a+s.trans,0),total=rawCost+trans+shared;
+  /* قيمة الفرزة: المباع بسعر البيع الفعلي، والباقي بسعر مؤقت لو المستخدم كتبه، وإلا من غير قيمة (التكلفة مبدئية) */
+  const farzSoldKg=fsd.kg,farzUnsold=Math.max(farz-fsd.kg,0),farzAvg=fsd.kg?fsd.net/fsd.kg:0;let credit=0,status='final';
+  if(c.method==='joint'){status='final'}
+  else if(farz<=0.005){credit=0;status='final'}
+  else if(farzUnsold<=0.005){credit=fsd.net;status='final'}
+  else if(temp!=null){credit=fsd.net+farzUnsold*temp;status='provisional'}
+  else{credit=fsd.net;status='noprice'}
+  const fp=farz>0?credit/farz:0;
   /* لكل مورد */
   rows.forEach(s=>{s.share=rawKg?s.kg/rawKg:0;s.shared=shared*s.share;s.total=s.rawCost+s.trans+s.shared;
     if(bySup){s.fin=s.cartons*cartonKg;s.farz=s.farzSacks*farzSackKg}else{s.fin=fin*s.share;s.farz=farz*s.share;s.cartons=cartons*s.share;s.farzSacks=farzSacks*s.share}
     s.waste=s.kg-s.fin-s.farz;s.effKg=s.kg?s.rawCost/s.kg:0;s.contractKg=s.kg?s.contract/s.kg:0;
     if(c.method==='joint'){const k=s.fin+s.farz;s.kgCost=k?s.total/k:0;s.finCost=s.kgCost*s.fin;s.farzCost=s.kgCost*s.farz;s.credit=0}
-    else{s.credit=s.farz*fp;s.finCost=s.total-s.credit;s.farzCost=s.credit}
+    else{s.credit=farz>0?credit*s.farz/farz:0;s.finCost=s.total-s.credit;s.farzCost=s.credit}
     s.perTon=s.fin?s.finCost/s.fin*1000:0;s.yield=s.kg?s.fin/s.kg*100:0});
   const finCost=rows.reduce((a,s)=>a+s.finCost,0),farzCost=rows.reduce((a,s)=>a+s.farzCost,0);
-  const perTon=fin?finCost/fin*1000:0,finKgCost=fin?finCost/fin:0,farzKgCost=farz?farzCost/farz:0;
+  const perTon=fin?finCost/fin*1000:0,finKgCost=fin?finCost/fin:0;
+  /* تكلفة كيلو الفرزة المباعة = صافي بيعها (ربح الفرزة صفر بطريقة المنتج الثانوي)، والمخزون الباقي بالسعر المؤقت أو صفر */
+  const farzKgCost=c.method==='joint'?(farz?farzCost/farz:0):farzAvg,farzStockKg=c.method==='joint'?farzKgCost:(temp!=null?temp:0);
+  const costLabel=status==='final'?'نهائي':status==='provisional'?'مبدئي (سعر فرزة مؤقت '+fmt(temp,2)+' ج/كجم لـ '+fmt(farzUnsold,0)+' كجم)':(farzSoldKg>0.005?'مبدئي — قبل خصم الفرزة غير المباعة ('+fmt(farzUnsold,0)+' كجم)':'مبدئي — قبل خصم الفرزة ('+fmt(farz,0)+' كجم)');
+  const farzWarn=status==='final'?'':'سعر الفرزة لسه ما اتحددش — التكلفة مبدئية';
   /* المقارنة بالمقدر — على أساس المنتج الثانوي (نفس نموذج تكلفة المجمدات) */
   const est=r.est?fcCalc(r.est):null;let cmp=null;
   if(fin>0&&rawKg>0){const T=fin/1000,pb=rawCost/rawKg;const L=[];
@@ -181,11 +201,12 @@ function runCost(r,c){
       {name:'سعر كيلو الخام الفعلي بعد الخصم',a:pb,e:est?est.I.price:0,u:'ج/كجم',d:2},
       {name:'نسبة الهالك من الخام',a:waste/rawKg*100,e:est?est.I.waste:0,u:'%',d:2},
       {name:'نسبة الفرزة من الخام بعد الهالك',a:(rawKg-waste)>0?farz/(rawKg-waste)*100:0,e:est?est.I.over:0,u:'%',d:2},
-      {name:'سعر كيلو الفرزة',a:fp,e:est?est.I.overPrice:0,u:'ج/كجم',d:2},
+      {name:'سعر كيلو الفرزة (فعلي/مؤقت)',a:fp,e:est?est.I.overPrice:0,u:'ج/كجم',d:2},
       {name:'خام لازم لكل طن صادر',a:rawKg/T,e:est&&est.I.tons?est.raw/est.I.tons:0,u:'كجم',d:0}];
     cmp={lines:L,aT,eT,v:aT-eT,drivers,usd:est?est.I.usd:0}}
   return{id:r.id,no:r.no,date:r.date,rows,rawKg,cartons,farzSacks,cartonKg,farzSackKg,fin,farz,waste,yieldFin:rawKg?fin/rawKg*100:0,yieldFarz:rawKg?farz/rawKg*100:0,yieldWaste:rawKg?waste/rawKg*100:0,
-    supplies,suppliesT,costs,costsT,runTrans,shared,rawCost,trans,total,finCost,farzCost,perTon,finKgCost,farzKgCost,fp,method:c.method,est,cmp,errs,bySup,
+    supplies,suppliesT,costs,costsT,runTrans,shared,rawCost,trans,total,finCost,farzCost,perTon,finKgCost,farzKgCost,farzStockKg,fp,method:c.method,est,cmp,errs,bySup,
+    status,costLabel,farzWarn,credit,farzTemp:temp,farzSoldKg,farzUnsold,farzAvg,farzSoldRev:fsd.rev,farzSoldNet:fsd.net,farzSales:fsd.sales,
     discSave:rows.reduce((a,s)=>a+s.discSave,0),discKg:rows.reduce((a,s)=>a+s.discKg,0)}
 }
 
@@ -203,6 +224,6 @@ function saleInfo(s,c){
 function fmt(x,d){x=Math.round((+x||0)*Math.pow(10,d))/Math.pow(10,d)+0;return x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 
-g.ERP={DEF_SUPPLIES,DEF_INPUTS,fcDefaults,fcCalc,parse,n,seed,compute,runCost,saleInfo,dmy,parseDmy,cairoIso,cairoTime,fmt,uid,COLLS,PTYPES,COST_CATS,STOCK_ITEMS,FACTORIES,VARIETIES};
+g.ERP={SEED_T,DEF_SUPPLIES,DEF_INPUTS,fcDefaults,fcCalc,parse,n,seed,compute,runCost,saleInfo,dmy,parseDmy,cairoIso,cairoTime,fmt,uid,COLLS,PTYPES,COST_CATS,STOCK_ITEMS,FACTORIES,VARIETIES};
 if(typeof module!=='undefined')module.exports=g.ERP;
 })(typeof window!=='undefined'?window:globalThis);

@@ -11,7 +11,7 @@ function build(){const D=E.seed();const t='2026-11-14T08:00:00.000Z';let k=0;con
   P({id:'si2',no:2,date:'2026-11-09',supplierId:'sp',locId:'fac2',lines:[{itemId:'itm1',qty:500,price:18}]}));
  D.transfers.push(P({id:'tf1',no:1,date:'2026-11-09',fromId:'fac2',toId:'fac1',lines:[{itemId:'itm1',qty:300}]}));
  const est=JSON.parse(JSON.stringify(D.varieties[0].est));
- D.runs.push(P({id:'r1',no:1,date:'2026-11-11',factoryId:'fac1',varietyId:'var1',inputs:[{purchaseId:'pA',kg:10000},{purchaseId:'pB',kg:8000}],cartons:1500,cartonKg:10,farzSacks:80,farzSackKg:25,farzPrice:15,
+ D.runs.push(P({id:'r1',no:1,date:'2026-11-11',factoryId:'fac1',varietyId:'var1',inputs:[{purchaseId:'pA',kg:10000},{purchaseId:'pB',kg:8000}],cartons:1500,cartonKg:10,farzSacks:80,farzSackKg:25,
   supplies:[{itemId:'itm1',qty:1500,locId:'fac1'},{itemId:'itm2',qty:15,locId:'fac1'},{itemId:'itm5',qty:8,locId:'fac1'}],
   costs:[{name:'التعبئة بالسيزر',amount:30000,partyId:'sv'},{name:'تجميد',amount:12000,partyId:'sv'},{name:'تخزين مبرد',amount:3000}],est}));
  D.sales.push(P({id:'s1',no:1,date:'2026-11-12',kind:'export',customerId:'cus-fussga',cur:'USD',rate:50,lines:[{runId:'r1',cartons:1000,price:1100}],expenses:[{name:'نقل للميناء',amount:6000,partyId:'tr'}]}),
