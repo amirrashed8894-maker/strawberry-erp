@@ -57,6 +57,10 @@ BUILD.run=function(o){const app=A(),r=app.get('runs',o.id);if(!r)return null;con
   b.push(T('فواتير الخام الداخلة',th(['الفاتورة','التاريخ','المورد','كجم','سعر','خصم','ج/كجم فعلي','نقل/كجم']),
     x.rows.flatMap(s=>s.purchases.map(p=>tr([td('#'+p.no),td(E.dmy(p.date),'v'),td(esc(s.name)),td(f0(p.kg),'v'),td(f2(p.price),'v'),td(f2(p.d)+'%','v'),td(f3(p.unit),'v'),td(f3(p.transKg),'v')]))),'','xs'));
   if(x.cmp)cmpBlocks(x).forEach(z=>b.push(z));
+  {const E2=[];const addE=(lbl,rec)=>{A().editNotes(rec).forEach(t=>E2.push(lbl+': '+t))};addE('التشغيلة #'+r.no,r);
+   x.rows.forEach(s=>s.purchases.forEach(q=>addE('فاتورة خام #'+q.no,app.get('purchases',q.purchaseId))));
+   D.transports.filter(t=>t.runId===r.id||(t.purchaseIds||[]).some(id=>x.rows.some(s=>s.purchases.some(q=>q.purchaseId===id)))).forEach(t=>addE('نقل #'+t.no,t));
+   if(E2.length)b.push(H('<h3>سجل التعديلات</h3><div class="enote">'+E2.map(esc).join('<br>')+'</div>'))}
   b.push(H(boxes([['مباع نهائي',f0(x.soldFin)+' كجم'],['باقي نهائي',f0(x.stockFin)+' كجم'],['باقي فرزة',f0(x.stockFarz)+' كجم'],['ربح المبيعات',f0(x.sales.profit)+' ج']])));
   return{title:'تقرير تكلفة تشغيلة #'+r.no+' — '+esc(vname),meta:E.dmy(r.date)+' · '+esc(fac)+' · '+methodTxt(x.method),blocks:b,file:'run-cost-'+r.no}};
 function cmpBlocks(x){const c=x.cmp,b=[];
@@ -81,6 +85,8 @@ function intWords(v){if(v===0)return 'صفر';const G=[[1e9,'مليار','ملي
 function moneyWords(x){x=Math.round(Math.abs(+x||0)*100);const L=Math.floor(x/100),pi=x%100;return 'فقط '+(L||!pi?intWords(L)+' جنيه مصري'+(pi?' و':''):'')+(pi?intWords(pi)+' قرش':'')+' لا غير'}
 const KIND={purchase:'فاتورة خام',transport:'نقل',supplyIn:'فاتورة مستلزمات',runCost:'تكلفة تشغيل',sale:'فاتورة بيع',saleExp:'مصروف بيع',payment:'دفعة',open:'رصيد افتتاحي'};
 const isCust=t=>t==='export'||t==='farz';
+/* ملاحظة التعديل الخفيفة — للتقارير الداخلية وكشوف الموردين بس، أبدًا في أي حاجة للعميل */
+function enote(rec,max){const L=A().editNotes(rec,max);return L.length?'<div class="enote">'+L.map(esc).join('<br>')+'</div>':''}
 function infoGrid(cells){return '<table class="rgrid"><tbody>'+cells.filter(c=>c&&c[1]!=null&&c[1]!=='').reduce((a,c,i,L)=>{if(i%2===0)a.push('<tr><th>'+c[0]+'</th><td>'+c[1]+'</td>'+(L[i+1]?'<th>'+L[i+1][0]+'</th><td>'+L[i+1][1]+'</td>':'<th></th><td></td>')+'</tr>');return a},[]).join('')+'</tbody></table>'}
 
 /* ===== كشف الحساب ===== */
@@ -93,7 +99,7 @@ BUILD.stmt=function(o){const app=A(),p=app.get('parties',o.id);if(!p)return null
   b.push(H(boxes([['الرصيد الختامي'+(o.to?' في '+E.dmy(o.to):''),f2(Math.abs(close))+' ج',Math.abs(close)<0.005?'متسدد':(close>0?'عليه — '+(cust?'مستحق لنا على العميل':'مستحق لنا عند المورد'):'له — '+(cust?'مستحق للعميل علينا':'مستحق للمورد علينا')),1],['رصيد أول المدة',amt(open)],['مدين خلال الفترة',f2(dr)],['دائن خلال الفترة',f2(cr)]])));
   const R=[];let bal=open,i=0;
   R.push(tr([td(''),td(o.from?E.dmy(o.from):'','v'),td('رصيد افتتاحي'),td(''),td(o.from?'رصيد منقول قبل '+E.dmy(o.from):'رصيد أول المدة'),td(open>0?f2(open):'','v'),td(open<0?f2(-open):'','v'),td(amt(open),'v')],'g'));
-  rows.forEach(e=>{bal+=e.dr-e.cr;i++;R.push(tr([td(i,'v c'),td(E.dmy(e.date),'v'),td(esc(e.doc||KIND[e.kind]||'')),td(esc(e.no==null?'':e.no),'v c'),td(esc(e.info||e.desc)),td(e.dr?f2(e.dr):'','v'),td(e.cr?f2(e.cr):'','v'),td(amt(bal),'v')]))});
+  rows.forEach(e=>{bal+=e.dr-e.cr;i++;R.push(tr([td(i,'v c'),td(E.dmy(e.date),'v'),td(esc(e.doc||KIND[e.kind]||'')),td(esc(e.no==null?'':e.no),'v c'),td(esc(e.info||e.desc)+(cust?'':(L=>L.length?'<div class="enote">'+L.map(esc).join('<br>')+'</div>':'')(app.stmtNotes(e,2)))),td(e.dr?f2(e.dr):'','v'),td(e.cr?f2(e.cr):'','v'),td(amt(bal),'v')]))});
   b.push(T('الحركات',th(['م','التاريخ','المستند','رقم','البيان','مدين','دائن','الرصيد']),R,tr([td(''),td(''),td('الإجمالي'),td(''),td(rows.length+' حركة + رصيد أول المدة'),td(f2(dr+(open>0?open:0)),'v'),td(f2(cr+(open<0?-open:0)),'v'),td(amt(close),'v b')],'tt'),'sm st'));
   b.push(H(bd('<div class="rwords"><b>الرصيد الختامي بالحروف:</b> '+(Math.abs(close)<0.005?'صفر — الحساب متسدد':moneyWords(close)+' — '+(close>0?(cust?'مستحق لشركة الراشد للتجارة على العميل':'مستحق لشركة الراشد للتجارة عند المورد'):(cust?'مستحق للعميل على شركة الراشد للتجارة':'مستحق للمورد على شركة الراشد للتجارة')))+'</div>')));
   b.push(H(note('مدين = عليه (مستحق لشركة الراشد)، دائن = له (مستحق على شركة الراشد). المبالغ بالجنيه المصري؛ الحركات بالدولار متحولة بالسعر المسجل في كل حركة. التواريخ يوم/شهر/سنة.')));
@@ -127,7 +133,7 @@ BUILD.profit=BUILD.profitSum;
 BUILD.profitDet=function(o){const {app,C,sales,L,tot,prov}=profitData(o);const b=[];const w=provWarn(prov);if(w)b.push(w);
   b.push(H(boxes([['صافي الربح',f0(tot.profit)+' ج',tot.rev?'هامش '+f1(tot.profit/tot.rev*100)+'%':'',1],['المبيعات',f0(tot.rev)+' ج',sales.length+' عملية'],['التكلفة المخصصة',f0(tot.cogs)+' ج'],['مصروفات البيع',f0(tot.exp)+' ج']])));
   const R=[];sales.forEach(s=>{const x=C.SL[s.id],cu=app.get('parties',s.customerId)||{};const zs=L.filter(z=>z.s.id===s.id);const any=zs.some(z=>z.prov);
-    R.push('<tr class="g">'+tdc('<b>بيع #'+esc(s.no)+' — '+E.dmy(s.date)+'</b> · '+esc(cu.name||'—')+' · '+(x.kind==='farz'?'فرزة (السعر للكيلو)':'تصدير (السعر للطن)')+(s.invNo?' · فاتورة '+esc(s.invNo):'')+(x.cur==='USD'?' · بالدولار: $'+f2(x.amount)+' × سعر '+f2(x.rate):' · بالجنيه'),9)+'</tr>');
+    R.push('<tr class="g">'+tdc('<b>بيع #'+esc(s.no)+' — '+E.dmy(s.date)+'</b> · '+esc(cu.name||'—')+' · '+(x.kind==='farz'?'فرزة (السعر للكيلو)':'تصدير (السعر للطن)')+(s.invNo?' · فاتورة '+esc(s.invNo):'')+(x.cur==='USD'?' · بالدولار: $'+f2(x.amount)+' × سعر '+f2(x.rate):' · بالجنيه')+enote(s,2),9)+'</tr>');
     zs.forEach(z=>{const l=z.l,run=z.run;const q=f0(l.kg);
       R.push(tr([td('تشغيلة #'+esc(run.no||'?')+' '+E.dmy(run.date)+' · '+esc(app.name('factories',run.factoryId))+(x.kind==='farz'?'':' · '+f0(l.cartons)+' كرتونة')+(z.prov?' <span class="flag">مبدئي</span>':'')),td(q,'v'),td((x.cur==='USD'?'$':'')+f2(l.price),'v'),td(f0(l.egp),'v'),td(f0(l.kgCost*1000),'v'),td(f0(l.cogs),'v'),td(f0(z.exp),'v'),td(f0(z.profit),'v b'),td(l.egp?f1(z.profit/l.egp*100)+'%':'-','v')]))});
     R.push(tr([td('إجمالي البيع #'+esc(s.no)+(any?' <span class="flag">مبدئي</span>':'')),td(f0(x.kg),'v'),td(''),td(f0(x.rev),'v'),td(x.kg?f0(x.cogs/x.kg*1000):'-','v'),td(f0(x.cogs),'v'),td(f0(x.exp),'v'),td(f0(x.profit),'v b'),td(f1(x.margin)+'%','v')],'st2'))});

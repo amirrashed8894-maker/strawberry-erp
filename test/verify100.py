@@ -1,6 +1,6 @@
 # تحقق مستقل بالحساب اليدوي (من غير core.js) لسيناريو 100 طن — بيقرأ test/scenario100.json ويطلع test/out/verify100.json
 import json,sys,pathlib
-d=pathlib.Path(__file__).parent;J=json.loads((d/'scenario100.json').read_text());D=J['data']
+d=pathlib.Path(__file__).parent;J=json.loads(pathlib.Path(sys.argv[1] if len(sys.argv)>1 else d/'scenario100.json').read_text());D=J['data']
 num=lambda x:float(x) if x not in (None,'') else 0.0
 P={}
 for p in D['purchases']:
@@ -89,6 +89,6 @@ for y in D['payments']:
 tot=dict(raw=sum(r['raw'] for r in R.values()),fin=sum(r['fin'] for r in R.values()),farz=sum(r['farz'] for r in R.values()),waste=sum(r['waste'] for r in R.values()),
  finCost=sum(r['finCost'] for r in R.values()),rev=sum(s['rev'] for s in SL.values()),cogs=sum(s['cogs'] for s in SL.values()),exp=sum(s['exp'] for s in SL.values()))
 tot['perTon']=tot['finCost']/tot['fin']*1000;tot['profit']=tot['rev']-tot['cogs']-tot['exp']
-out=dict(R=R,SL=SL,BAL=BAL,tot=tot);(d/'out').mkdir(exist_ok=True);(d/'out'/'verify100.json').write_text(json.dumps(out,ensure_ascii=False,indent=1))
+out=dict(R=R,SL=SL,BAL=BAL,tot=tot);(d/'out').mkdir(exist_ok=True);pathlib.Path(sys.argv[2] if len(sys.argv)>2 else d/'out'/'verify100.json').write_text(json.dumps(out,ensure_ascii=False,indent=1))
 for r in R.values():print('run',r['no'],r['status'],round(r['total'],2),round(r['perTon'],2),{k:round(v,2) for k,v in r['bySup'].items()})
 print('tot',{k:round(v,2) for k,v in tot.items()})
