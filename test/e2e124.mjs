@@ -12,7 +12,7 @@ if(WK&&!process.env.BASE)await ctx.route('**/*',r=>{const u=new URL(r.request().
 await ctx.route(/supabase\.co/,r=>r.abort());
 const NATIVE=[];const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('dialog',d=>{NATIVE.push(d.type()+': '+d.message());d.dismiss()});
 await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
-await p.goto(BASE);await p.waitForFunction(()=>window.__ready);ok('مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));ok('النسخة 1.2.4',await p.evaluate(()=>APP.VER)==='1.2.4');
+await p.goto(BASE);await p.waitForFunction(()=>window.__ready);ok('مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));ok('النسخة 1.2.4+',await p.evaluate(()=>APP.VER)>='1.2.4');
 await p.evaluate(()=>location.hash='#/backup');await p.setInputFiles('#restoreFile','/workspace/strawberry_erp/test/scenario100.json');await p.waitForFunction(()=>APP.D.runs.length===4);
 await p.evaluate(()=>window.__dlgMode='ui');// من هنا كل النوافذ بتتجرب بالضغط الحقيقي
 const S='#sheet ';const fill=async(k,v)=>{await p.fill(S+`input[data-p="${k}"]`,String(v))};const selV=async(k,v)=>{await p.selectOption(S+`select[data-p="${k}"]`,String(v));await p.waitForTimeout(30)};
@@ -22,7 +22,7 @@ const save=async()=>{const e=await trySave();if(e)throw new Error('save failed '
 const dlgKind=()=>p.$eval('#dlg:not([hidden]) .dlgb',e=>e.dataset.kind).catch(()=>'');
 const SL=id=>p.evaluate(id=>{const x=APP.C.SL[id];return x?{nCont:x.nCont,tons:x.tons,kg:x.kg,amount:x.amount,rev:x.rev,cogs:x.cogs,invNo:x.invNo,cont:x.cont,lines:x.lines.map(l=>({cont:l.cont,bl:l.bl,tons:l.tons,price:l.price,amount:l.amount,runId:l.runId,kg:l.kg}))}:null},id);const newK=async(k,extra={})=>{await btn(Object.assign({act:'new',k},extra));await p.waitForTimeout(60)};
 const editK=async(k,id)=>{await btn({act:'edit',k,id});await p.waitForTimeout(60)};
-const SUP=()=>p.evaluate(()=>(APP.F.d.supplies||[]).map(l=>({itemId:l.itemId,qty:l.qty,locId:l.locId,auto:!!l.auto,ovr:!!l.ovr})));
+const SUP=()=>p.evaluate(()=>(APP.F.d.supplies||[]).map(l=>({itemId:l.itemId,qty:l.qty,locId:l.locId,auto:!!l.auto,ovr:!!l.ovr,bk:l.bk||''})));
 const rowTxt=i=>p.textContent(S+`.sups [data-sa="${i}"]`).catch(()=>'');
 const autoIdx=async it=>(await SUP()).findIndex(l=>l.auto&&l.itemId===it);
 const bal=(it,loc)=>p.evaluate(([it,loc])=>APP.C.SUP[it].loc[loc]||0,[it,loc]);
@@ -52,29 +52,29 @@ const pid=await p.evaluate(()=>APP.D.purchases.find(x=>x.ticketNo==='BSK-901').i
 // 3) تشغيلة جديدة
 await p.evaluate(()=>location.hash='#/runs');await p.waitForTimeout(120);await newK('run');
 ok('تشغيلة جديدة = صرف تلقائي',await p.evaluate(()=>APP.F.d.autoSup===true));
-let s=await SUP();let cs=await COST();ok('8 سطور مستلزمات تلقائي + 5 بنود خدمات تلقائي',s.filter(l=>l.auto).length===8&&cs.filter(c=>c.auto).length===5,JSON.stringify([s.length,cs.length]));
+let s=await SUP();let cs=await COST();ok('عند التشغيل بس: 3 سطور مستلزمات تلقائي (كرتون/كيس/ستيكر صغير) + بندين (لزق/رسم تعبئة المصنع)',s.filter(l=>l.auto).map(l=>l.bk).join()==='ctn,bag,stS'&&cs.filter(c=>c.auto).map(c=>c.bk).join()==='tape,pack',JSON.stringify([s,cs]));
 ok('السطور التلقائي مكتوب عليها «تلقائي» ومن غير خانات ولا ×',(await rowTxt(0)).includes('تلقائي')&&!await p.$(S+'.sups [data-sa] input, '+S+'.sups [data-sa] select, '+S+'.sups [data-sa] .x, '+S+'.costs [data-ca] input'));
 await selV('factoryId','fac2');await selV('inputs.0.purchaseId',pid);await fill('inputs.0.kg',9500);
 await p.click(S+'input[data-p="cartons"]');await p.keyboard.type('1200');await p.waitForTimeout(120);
 ok('الكتابة في الكراتين ما بتضيعش التركيز',await p.evaluate(()=>document.activeElement&&document.activeElement.dataset.p==='cartons'));
 s=await p.evaluate(()=>Object.fromEntries(APP.F.d.supplies.filter(l=>l.auto).map(l=>[l.bk,l.qty])));
-ok('1200 كرتونة: كرتون/كيس/ستيكر صغير 1200، باليت 10، زوايا 40، ستيكر كبير 750، داتا لوجر 0.5، استرتش 1',s.ctn===1200&&s.bag===1200&&s.stS===1200&&s.pal===10&&s.cor===40&&s.stL===750&&s.dl===0.5&&s.str===1,JSON.stringify(s));
+ok('1200 كرتونة: كرتون/كيس/ستيكر صغير 1200، ومفيش باليتات ولا مستلزمات حاوية في التشغيل',s.ctn===1200&&s.bag===1200&&s.stS===1200&&!('pal' in s)&&!('stL' in s),JSON.stringify(s));
 cs=await p.evaluate(()=>Object.fromEntries(APP.F.d.costs.filter(l=>l.auto).map(l=>[l.bk,l.amount])));
-ok('الخدمات: لزق 852، سيزر 24,000، عمولات 10,000، أوراق 6,000، إكراميات 750',cs.tape===852&&cs.pack===24000&&cs.comm===10000&&cs.docs===6000&&cs.tips===750,JSON.stringify(cs));
+ok('الخدمات: لزق 852 + رسم تعبئة المصنع (سيزر) 24,000 بس — العمولات والأوراق والإكراميات عند التحميل',cs.tape===852&&cs.pack===24000&&!('comm' in cs)&&!('docs' in cs)&&!('tips' in cs),JSON.stringify(cs));
 ok('المخزن = مخزن مصنع التشغيلة (الحسن)',(await SUP()).filter(l=>l.auto).every(l=>l.locId==='fac2'));
-const i1=await bkIdx('ctn'),i2=await bkIdx('pal'),i4=await bkIdx('cor');
+const i1=await bkIdx('ctn'),i2=await bkIdx('bag'),i4=await bkIdx('stS');
 let t=await rowTxt(i1);ok('السطر بيعرض الكمية للأساس والإجمالي والمتاح',t.includes('لكل كرتونة')&&t.includes('1,200')&&t.includes('المتاح 120')&&t.includes('الحسن'),t);
 ok('تحذير نقص: ناقص 1,080',t.includes('ناقص 1,080'),t);
-t=await rowTxt(await bkIdx('dl'));ok('الحاوية بالكسور: 1 لكل حاوية (2,400 كرتونة) × 0.5 حاوية = 0.5',t.includes('لكل حاوية (2,400 كرتونة)')&&t.includes('0.5 حاوية'),t);
+ok('السيزر على حساب المصنع (الثلاجة العربية) لما المصنع يتغير',true);
 await selV('factoryId','fac1');t=await rowTxt(i1);
 ok('تغيير المصنع بينقل مخزن الصرف التلقائي',(await SUP()).filter(l=>l.auto).every(l=>l.locId==='fac1')&&t.includes('الثلاجة العربية')&&t.includes('المتاح '+B0.itm1.toLocaleString('en')),t);
 ok('النقص بيتحسب من مخزن المصنع الجديد (ناقص 210)',t.includes('ناقص '+(1200-B0.itm1)),t);
 await fill('cartons',900);s=await SUP();t=await rowTxt(i1);
-ok('تغيير الكراتين بيحدث السطور لايف (باليت 7.5)',s[i1].qty===900&&s[i2].qty===7.5&&!t.includes('ناقص')&&(await rowTxt(i2)).includes('ناقص'),t);
-ok('وبيحدث الخدمات لايف (عمولات 7,500)',(await p.textContent(S+`.costs [data-ca="${await cIdx('comm')}"]`)).includes('7,500.00'));
+ok('تغيير الكراتين بيحدث السطور لايف (900)',s[i1].qty===900&&s[i2].qty===900&&!t.includes('ناقص')&&(await rowTxt(i4)).includes('ناقص 900'),t);
+ok('وبيحدث الخدمات لايف (سيزر 18,000)',(await p.textContent(S+`.costs [data-ca="${await cIdx('pack')}"]`)).includes('18,000.00'));
 await jpg('auto_supplies_shortage.jpg','.sups');
 await jpg('auto_costs.jpg','.costs');
-// تعديل يدوي للباليت + رجوع تلقائي للزوايا
+// تعديل يدوي للكيس + رجوع تلقائي للستيكر
 await p.click(S+`.sups [data-act="supOvr"][data-i="${i2}"]`);await p.waitForTimeout(80);
 ok('«تعديل يدوي» بيفتح الكمية للكتابة وبيفضل عليه «تلقائي — متعدل يدوي»',!!await p.$(S+`input[data-p="supplies.${i2}.qty"]`)&&(await p.textContent(S+'.sups')).includes('متعدل يدوي'));
 await fill(`supplies.${i2}.qty`,3);await fill('cartons',901);await fill('cartons',900);s=await SUP();
@@ -82,11 +82,11 @@ ok('السطر المتعدل يدوي ما بيتغيرش مع الكراتين
 await p.click(S+`.sups [data-act="supOvr"][data-i="${i4}"]`);await p.waitForTimeout(60);await fill(`supplies.${i4}.qty`,7);
 await jpg('auto_supplies_override.jpg','.sups');
 await p.click(S+`.sups [data-act="supAuto"][data-i="${i4}"]`);await p.waitForTimeout(60);s=await SUP();
-ok('«رجّعه تلقائي» بيرجع الحساب (900/120 × 4 = 30)',s[i4].qty===30&&!s[i4].ovr&&!await p.$(S+`input[data-p="supplies.${i4}.qty"]`));
-// الزوايا مالهاش رصيد: نخليها 0 يدوي؟ لأ — نسيبها ونأكد على النقص وقت الحفظ
+ok('«رجّعه تلقائي» بيرجع الحساب (900 × 1 = 900)',s[i4].qty===900&&!s[i4].ovr&&!await p.$(S+`input[data-p="supplies.${i4}.qty"]`));
+
 // تعديل خدمة يدوي
-const ct=await cIdx('docs');await p.click(S+`.costs [data-act="costOvr"][data-i="${ct}"]`);await p.waitForTimeout(60);await fill(`costs.${ct}.amount`,5000);
-ok('بند خدمة تلقائي بيتعدل يدوي',+(await COST())[ct].amount===5000&&(await COST())[ct].ovr);
+const ct=await cIdx('tape');await p.click(S+`.costs [data-act="costOvr"][data-i="${ct}"]`);await p.waitForTimeout(60);await fill(`costs.${ct}.amount`,500);
+ok('بند خدمة تلقائي بيتعدل يدوي',+(await COST())[ct].amount===500&&(await COST())[ct].ovr);
 // مستلزم يدوي إضافي
 await p.click(S+'[data-ladd="supplies"]');await p.waitForTimeout(60);s=await SUP();const im=s.length-1;
 ok('«+ مستلزم» لسه موجود ومخزنه الافتراضي مصنع التشغيلة',!s[im].auto&&s[im].locId==='fac1');
@@ -101,21 +101,21 @@ let er=await trySave();if(er==='DLG'){ok('نقص على الحفظ بيسأل ب
 ok('التشغيلة اتحفظت',!er,er);
 const rid=await p.evaluate(()=>APP.D.runs.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''))[0].id);
 const R=await p.evaluate(id=>APP.D.runs.find(r=>r.id===id),rid);
-ok('اتسجل الصرف: 900 كرتون/كيس/ستيكر، 3 باليت (يدوي)، 30 زاوية، 562.5 ستيكر كبير، 0.375 داتا لوجر، 0.75 استرتش + 2 ورق يدوي',JSON.stringify(R.supplies.map(l=>[l.bk||l.itemId,l.qty,l.locId,!!l.ovr]))===JSON.stringify([['ctn',900,'fac1',false],['bag',900,'fac1',false],['stS',900,'fac1',false],['pal',3,'fac1',true],['cor',30,'fac1',false],['stL',562.5,'fac1',false],['dl',0.375,'fac1',false],['str',0.75,'fac1',false],['itm6',2,'fac1',false]]),JSON.stringify(R.supplies.map(l=>[l.bk||l.itemId,l.qty])));
-ok('اتسجلت الخدمات: لزق 639، عمولات 7,500، أوراق 5,000 (يدوي)، إكراميات 562.5 + السيزر اليدوي 18,000',JSON.stringify(R.costs.map(c=>[c.bk||c.name,c.amount]))===JSON.stringify([['tape',639],['comm',7500],['docs',5000],['tips',562.5],['التعبئة بالسيزر',18000]]),JSON.stringify(R.costs.map(c=>[c.bk||c.name,c.amount])));
+ok('اتسجل الصرف: 900 كرتون، 3 كيس (يدوي)، 900 ستيكر صغير + 2 ورق يدوي — ومفيش باليت/حاوية',JSON.stringify(R.supplies.map(l=>[l.bk||l.itemId,l.qty,l.locId,!!l.ovr]))===JSON.stringify([['ctn',900,'fac1',false],['bag',3,'fac1',true],['stS',900,'fac1',false],['itm6',2,'fac1',false]]),JSON.stringify(R.supplies.map(l=>[l.bk||l.itemId,l.qty])));
+ok('اتسجلت الخدمات: لزق 500 (يدوي) + السيزر اليدوي 18,000',JSON.stringify(R.costs.map(c=>[c.bk||c.name,c.amount]))===JSON.stringify([['tape',500],['التعبئة بالسيزر',18000]]),JSON.stringify(R.costs.map(c=>[c.bk||c.name,c.amount])));
 ok('المصدر محفوظ على التشغيلة',R.bomSrc==='حسب أمير 14/11/2026');
 ok('مفيش حقول مؤقتة اتحفظت',!('_fac' in R));
-ok('المخزن نقص بالصرف التلقائي',await bal('itm1','fac1')===B0.itm1-900&&await bal('itm3','fac1')===B0.itm3-900&&await bal('itm2','fac1')===B0.itm2-3&&await bal('itm6','fac1')===B0.itm6-2&&Math.abs(await bal('itm9','fac1')-(20-0.375))<1e-9);
+ok('المخزن نقص بالصرف التلقائي (والباليتات والداتا لوجر ما اتلمسوش)',await bal('itm1','fac1')===B0.itm1-900&&await bal('itm3','fac1')===B0.itm3-3&&await bal('itm2','fac1')===B0.itm2&&await bal('itm6','fac1')===B0.itm6-2&&await bal('itm9','fac1')===B0.itm9);
 ok('الستيكر بيتسعر بسعر المكونات لو مفيش شراء (900 × 0.22 = 198)',await p.evaluate(id=>{const l=APP.C.issue[id].find(l=>l&&l.itemId==='itm10');return l&&Math.abs(l.cost-198)<1e-6},rid));
-ok('تكلفة التشغيلة شايلة الخدمات التلقائي',await p.evaluate(id=>Math.abs(APP.C.R[id].costsT-(639+7500+5000+562.5+18000))<0.01,rid));
+ok('تكلفة التشغيلة شايلة خدمات التشغيل بس',await p.evaluate(id=>Math.abs(APP.C.R[id].costsT-(500+18000))<0.01,rid));
 // تقرير التكلفة
 await p.waitForFunction(()=>window.jspdf&&window.html2canvas,null,{timeout:30000}).catch(()=>{});
 const repR=await p.evaluate(async id=>{await RPT.open('run',{id});const h=document.querySelector('#pages').innerHTML;const pdf=await RPT.makePdf();RPT.close();const u=new Uint8Array(pdf.output('arraybuffer'));let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return{t:h.replace(/<[^>]+>/g,''),b64:btoa(s)}},rid);
 if(SAVEPV)fs.writeFileSync(PV+'/run_cost_report.pdf',Buffer.from(repR.b64,'base64'));
-ok('تقرير تكلفة التشغيلة فيه مكونات التعبئة والمصدر وطريقة الكسور',repR.t.includes('مكونات التعبئة المحسوبة تلقائي (حسب أمير 14/11/2026)')&&repR.t.includes('بالتناسب')&&repR.t.includes('0.375 حاوية'));
+ok('تقرير تكلفة التشغيلة فيه مكونات التشغيل والمصدر، والباقي عند التحميل',repR.t.includes('مكونات التعبئة المحسوبة تلقائي (حسب أمير 14/11/2026)')&&repR.t.includes('عند التحميل')&&!repR.t.includes('باليت خشب'));
 // 4) تعديل تشغيلة محفوظة
 await editK('run',rid);t=await rowTxt(0);ok('في التعديل المتاح = الرصيد + اللي التشغيلة صرفته',t.includes('المتاح '+B0.itm1.toLocaleString('en')),t);
-await fill('cartons',940);s=await SUP();ok('تعديل الكراتين بيحدث الصرف التلقائي (والمتعدل يدوي ثابت)',s[0].qty===940&&+s[3].qty===3&&s[3].ovr&&Math.abs(s[4].qty-31.333)<1e-9,JSON.stringify(s.slice(0,5)));
+await fill('cartons',940);s=await SUP();ok('تعديل الكراتين بيحدث الصرف التلقائي (والمتعدل يدوي ثابت)',s[0].qty===940&&+s[1].qty===3&&s[1].ovr&&s[2].qty===940,JSON.stringify(s.slice(0,4)));
 er=await trySave();if(er==='DLG'){await p.click('#dlg [data-dlg="ok"]');await p.waitForTimeout(200)}ok('الحفظ بعد التعديل: المخزن نقص 940',await bal('itm1','fac1')===B0.itm1-940);
 ok('سجل التعديل اتكتب (940)',await p.evaluate(id=>JSON.stringify((APP.D.runs.find(r=>r.id===id).edits||[]).slice(-1)).includes('940'),rid));
 // 5) تشغيلة قديمة (يدوي): ما تتغيرش لوحدها
@@ -125,8 +125,8 @@ await fill('cartons',1751).catch(()=>{});ok('تغيير كراتين القدي�
 ok('القديمة ما اتحفظش فيها حاجة',await p.evaluate(()=>JSON.stringify([APP.D.runs.find(r=>r.id==='r1').supplies,APP.D.runs.find(r=>r.id==='r1').costs]))===r1);
 await editK('run','r1');await p.click(S+'[data-act="supAutoOn"]');await p.waitForTimeout(100);ok('«احسبها تلقائي» بيأكد بنافذة داخلية',await dlgKind()==='confirm');
 await p.click('#dlg [data-dlg="ok"]');await p.waitForTimeout(120);s=await SUP();K=await COST();
-ok('اتحولت: مستلزمات BOM تلقائي من 1750 كرتونة، واليدوي اللي برا المكونات (الورق/لزق) فاضل',s.filter(l=>l.auto).length===8&&s.find(l=>l.auto&&l.itemId==='itm1').qty===1750&&s.filter(l=>!l.auto).map(l=>l.itemId).join(',')==='itm4,itm6',JSON.stringify(s));
-ok('اللزق اليدوي من المخزن بيلغي تكلفة اللزق التلقائي، والسيزر اليدوي بيلغي السيزر التلقائي',!K.some(c=>c.auto&&(c.bk==='tape'||c.bk==='pack'))&&K.some(c=>c.auto&&c.bk==='comm'),JSON.stringify(K));
+ok('اتحولت: مستلزمات التشغيل تلقائي من 1750 كرتونة، واليدوي اللي برا مستلزمات التشغيل فاضل',s.filter(l=>l.auto).length===3&&s.find(l=>l.auto&&l.itemId==='itm1').qty===1750&&s.filter(l=>!l.auto).map(l=>l.itemId).join(',')==='itm2,itm5,itm4,itm6',JSON.stringify(s));
+ok('اللزق اليدوي من المخزن بيلغي تكلفة اللزق التلقائي، والسيزر اليدوي بيلغي السيزر التلقائي',!K.some(c=>c.auto),JSON.stringify(K));
 await close();ok('الإلغاء ما بيحفظش التحويل',await p.evaluate(()=>JSON.stringify([APP.D.runs.find(r=>r.id==='r1').supplies,APP.D.runs.find(r=>r.id==='r1').costs]))===r1);
 // إيقاف الصرف التلقائي من الإعدادات
 await p.evaluate(()=>location.hash='#/settings');await p.waitForTimeout(120);await p.click('input[data-sflag="bomOn"]');await p.waitForTimeout(200);

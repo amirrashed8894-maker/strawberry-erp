@@ -64,4 +64,20 @@ assert.equal(E.parseDmy('٠٥/١١/٢٠٢٦'),'2026-11-05');assert.equal(E.parse
  const iss=C3.issue.r2.find(l=>l&&l.itemId==='itm7');near(iss.avg,3,'avg includes both openings (100×2+50×5)/150');near(iss.cost,120,'issue cost');assert.ok(!iss.short);
  assert.ok(!C3.warns.some(w=>w.item==='itm7'),'no shortage with opening stock');
  const C4=E.compute(Object.assign({},d3,{items:d3.items.map(i=>i.id==='itm7'?Object.assign({},i,{openStock:[]}):i)}));assert.ok(C4.warns.some(w=>w.type==='issue'&&w.item==='itm7'),'without opening → shortage')}
+/* v1.2.5: مستلزمات وخدمات التحميل لكل حاوية بوحدات كاملة — بتدخل ربحية البيع مش تكلفة التشغيلة */
+{const base=JSON.parse(require('fs').readFileSync(__dirname+'/scenario100.json','utf8')).data;const b=E.bomOf();
+ assert.deepEqual(b.lines.filter(l=>l.stage==='run').map(l=>l.k),['ctn','bag','stS']);assert.deepEqual(b.services.filter(l=>l.stage==='run').map(l=>l.k),['tape','pack']);
+ assert.deepEqual(b.lines.filter(l=>l.stage==='load').map(l=>l.k),['pal','cor','stL','dl','str']);assert.deepEqual(b.services.filter(l=>l.stage==='load').map(l=>l.k),['comm','docs','tips']);
+ const old=E.bomOf({bom:{perPal:120,perCont:2400,lines:[{k:'a',base:'ctn',qty:1},{k:'b',base:'pal',qty:1}],services:[{k:'c',base:'cont',amount:5}]}});assert.equal(old.lines[0].stage,'run');assert.equal(old.lines[1].stage,'load');assert.equal(old.services[0].stage,'load');
+ assert.equal(E.loadPal(2400,b),20);assert.equal(E.loadPal(1500,b),13);assert.equal(E.loadPal(1440,b),12);assert.equal(E.loadPal(1441,b),13);assert.equal(E.loadPal(0,b),0);
+ const Q=N=>Object.fromEntries(b.lines.filter(l=>l.stage==='load').map(l=>[l.k,E.bomLoadQty(l,N,b)]));assert.deepEqual(Q(1500),{pal:13,cor:52,stL:1500,dl:1,str:2});assert.deepEqual(Q(2400),{pal:20,cor:80,stL:1500,dl:1,str:2});
+ assert.deepEqual(b.services.filter(l=>l.stage==='load').map(v=>E.bomLoadSvc(v,1500,b)),[20000,12000,1500]);
+ const C0=E.compute(base),d=JSON.parse(JSON.stringify(base));const st=E.compute(d).R.r4.stockFin;
+ const sup=b.lines.filter(l=>l.stage==='load').map(l=>({k:l.k,itemId:l.itemId,qty:E.bomLoadQty(l,1500,b),auto:true})),svc=b.services.filter(l=>l.stage==='load').map(v=>({k:v.k,name:v.name,amount:E.bomLoadSvc(v,1500,b),partyId:v.k==='comm'?'SV1':'',auto:true}));
+ d.sales.push({id:'cl',no:98,date:'2026-11-14',kind:'export',cont:true,autoLoad:true,invNo:'FR27009',customerId:'cus-fussga',cur:'USD',rate:50,lines:[{runId:'r4',cont:'L1',bl:'B',tons:15,price:1.2,ld:{locId:'fac1',sup,svc}}],expenses:[]});
+ const C1=E.compute(d),x=C1.SL.cl;const LI=C1.loadIss.cl[0];assert.equal(LI.length,5);near(x.loadSvc,33500,'load services');near(x.loadSup,LI.reduce((a,z)=>a+z.cost,0),'load supplies cost');
+ near(x.profit,x.rev-x.cogs-x.exp-x.load,'profit after load');assert.ok(x.load>33500);near(C1.R.r4.sales.load,x.load,'run sales load');near(C1.R.r4.perTon,C0.R.r4.perTon,'run cost unchanged by loading');
+ assert.equal(C1.SUP.itm2.loc.fac1,C0.SUP.itm2.loc.fac1-13,'pallets from loading warehouse');assert.ok(C1.warns.some(w=>w.type==='load'&&w.sale==='cl'&&w.item==='itm2'),'pallet shortage at loading');
+ assert.ok(C1.L.SV1.some(e=>e.kind==='loadSvc'&&e.cr===20000),'commission posted to service account');assert.ok(!C1.L['cus-fussga'].some(e=>e.kind==='loadSvc'),'nothing internal on customer');
+ assert.equal(C1.L['cus-fussga'].find(e=>e.ref==='cl').dr,x.rev,'customer debit = revenue only')}
 console.log('calc tests OK');

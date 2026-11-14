@@ -13,7 +13,7 @@ await ctx.route(/supabase\.co/,r=>r.abort());
 const NATIVE=[];const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('dialog',d=>{NATIVE.push(d.type()+': '+d.message());d.dismiss()});
 await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
 await p.goto(BASE);await p.waitForFunction(()=>window.__ready);ok('مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));ok('النسخة 1.2.3+',await p.evaluate(()=>APP.VER)>='1.2.3');
-await p.evaluate(()=>location.hash='#/backup');await p.setInputFiles('#restoreFile','/workspace/strawberry_erp/test/scenario100.json');await p.waitForFunction(()=>APP.D.runs.length===4);
+await p.evaluate(()=>location.hash='#/backup');await p.setInputFiles('#restoreFile','/workspace/strawberry_erp/test/scenario100.json');await p.waitForFunction(()=>APP.D.runs.length===4);await p.evaluate(async()=>{const s=APP.S();s.bomOn=false;await APP.upsert('settings',s)});// v1.2.5: صرف التحميل التلقائي متجرب في e2e125
 await p.evaluate(()=>window.__dlgMode='ui');// من هنا كل النوافذ بتتجرب بالضغط الحقيقي
 const S='#sheet ';const fill=async(k,v)=>{await p.fill(S+`input[data-p="${k}"]`,String(v))};const selV=async(k,v)=>{await p.selectOption(S+`select[data-p="${k}"]`,String(v));await p.waitForTimeout(30)};
 const btn=async(sel)=>{await p.evaluate(sel=>{const b=document.createElement('button');Object.assign(b.dataset,sel);document.body.appendChild(b);b.click();b.remove()},sel);await p.waitForTimeout(80)};

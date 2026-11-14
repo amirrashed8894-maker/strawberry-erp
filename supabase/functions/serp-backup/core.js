@@ -70,12 +70,18 @@ function openInfo(p){const o=n(p.open);if(!(o>0))return null;const usd=p.openCur
 /* مكونات التعبئة (BOM) للفراولة — حسب أمير 14/11/2026: لكل كرتونة (10 كجم صافي) / لكل باليت (120 كرتونة) / لكل حاوية (2400 كرتونة = 20 باليت).
    اللزق تكلفة لكل كرتونة (71 ج/طن نهائي = 0.71 ج/كرتونة) حسب برنامج تكلفة المجمدات - فراولة، مش كمية مخزن. الخدمات لكل حاوية بتتوزع على الكرتونة في تكلفة التشغيلة. */
 const DEF_BOM={src:'حسب أمير 14/11/2026',perPal:120,perCont:2400,lines:[
-  {k:'ctn',itemId:'itm1',base:'ctn',qty:1},{k:'bag',itemId:'itm3',base:'ctn',qty:1,note:'كيس أزرق كبير'},{k:'stS',itemId:'itm10',base:'ctn',qty:1,price:0.22,note:'220 ج لكل 1000'},
-  {k:'pal',itemId:'itm2',base:'pal',qty:1,note:'باليت خشب'},{k:'cor',itemId:'itm7',base:'pal',qty:4},
-  {k:'stL',itemId:'itm11',base:'cont',qty:1500,price:0.3,note:'10×10 — 300 ج لكل 1000'},{k:'dl',itemId:'itm9',base:'cont',qty:1},{k:'str',itemId:'itm5',base:'cont',qty:2}],
-  services:[{k:'tape',name:'لزق (من تحت ومن فوق)',base:'ctn',amount:0.71,match:'لزق',itemId:'itm4',src:'حسب برنامج تكلفة المجمدات - فراولة (71 ج/طن)'},{k:'pack',name:'التعبئة بالسيزر (رسم تعبئة المصنع)',base:'ctn',amount:20,match:'سيزر|^ *التعبئة',toFactory:true,src:'حسب برنامج تكلفة المجمدات - فراولة (2000 ج/طن) — مصروف منفصل عن العمولات'},{k:'comm',name:'عمولات شراء الخام والتعبئة',base:'cont',amount:20000,match:'عمول'},{k:'docs',name:'أوراق ومستندات',base:'cont',amount:12000,match:'أوراق|اوراق|مستند'},{k:'tips',name:'إكراميات',base:'cont',amount:1500,match:'إكرامي|اكرامي'}]};
+  {k:'ctn',stage:'run',itemId:'itm1',base:'ctn',qty:1},{k:'bag',stage:'run',itemId:'itm3',base:'ctn',qty:1,note:'كيس أزرق كبير'},{k:'stS',stage:'run',itemId:'itm10',base:'ctn',qty:1,price:0.22,note:'220 ج لكل 1000'},
+  {k:'pal',stage:'load',itemId:'itm2',base:'pal',qty:1,note:'باليت خشب'},{k:'cor',stage:'load',itemId:'itm7',base:'pal',qty:4},
+  {k:'stL',stage:'load',itemId:'itm11',base:'cont',qty:1500,price:0.3,note:'10×10 — 300 ج لكل 1000'},{k:'dl',stage:'load',itemId:'itm9',base:'cont',qty:1},{k:'str',stage:'load',itemId:'itm5',base:'cont',qty:2}],
+  services:[{k:'tape',stage:'run',name:'لزق (من تحت ومن فوق)',base:'ctn',amount:0.71,match:'لزق',itemId:'itm4',src:'حسب برنامج تكلفة المجمدات - فراولة (71 ج/طن)'},{k:'pack',stage:'run',name:'التعبئة بالسيزر (رسم تعبئة المصنع)',base:'ctn',amount:20,match:'سيزر|^ *التعبئة',toFactory:true,src:'حسب برنامج تكلفة المجمدات - فراولة (2000 ج/طن) — مصروف منفصل عن العمولات'},{k:'comm',stage:'load',name:'عمولات شراء الخام والتعبئة',base:'cont',amount:20000,match:'عمول'},{k:'docs',stage:'load',name:'أوراق ومستندات',base:'cont',amount:12000,match:'أوراق|اوراق|مستند'},{k:'tips',stage:'load',name:'إكراميات',base:'cont',amount:1500,match:'إكرامي|اكرامي'}]};
 const BASE_L={ctn:'لكل كرتونة',pal:'لكل باليت',cont:'لكل حاوية'};
-function bomOf(S){const b=S&&S.bom;return b&&b.lines?b:JSON.parse(JSON.stringify(DEF_BOM))}
+/* v1.2.5: كل بند ليه مرحلة: 'run' = بيتصرف عند التشغيل (بالتناسب مع الكراتين)، 'load' = عند التحميل للعميل (لكل حاوية بوحدات كاملة) */
+function bomOf(S){const b0=S&&S.bom;const b=b0&&b0.lines?JSON.parse(JSON.stringify(b0)):JSON.parse(JSON.stringify(DEF_BOM));
+  b.lines.forEach(l=>{if(l.stage!=='run'&&l.stage!=='load')l.stage=l.base==='ctn'?'run':'load'});(b.services||(b.services=[])).forEach(v=>{if(v.stage!=='run'&&v.stage!=='load')v.stage=v.base==='ctn'?'run':'load'});return b}
+/* التحميل: وحدات كاملة لكل حاوية — الباليتات = تقريب لفوق (الكراتين ÷ 120)، الزوايا = 4 × الباليتات، والباقي لكل حاوية زي ما هو */
+function loadPal(N,b){N=n(N);return N>0?Math.ceil(N/(n(b.perPal)||120)-1e-9):0}
+function bomLoadQty(l,N,b){const q=n(l.qty);if(l.base==='pal')return loadPal(N,b)*q;if(l.base==='ctn')return Math.ceil(n(N)*q-1e-9);return q}
+function bomLoadSvc(sv,N,b){const a=n(sv.amount);if(sv.base==='pal')return Math.round(a*loadPal(N,b)*100)/100;if(sv.base==='ctn')return Math.round(a*n(N)*100)/100;return a}
 /* الكمية لتشغيلة فيها N كرتونة: كسور بالتناسب (مثلاً 900 كرتونة = 7.5 باليت = 0.375 حاوية) ومتقربة لـ 3 أرقام عشرية */
 function bomQty(l,N,b){N=n(N);const q=n(l.qty),pp=n(b.perPal)||120,pc=n(b.perCont)||2400;let x;
   if(l.base==='pal')x=N/pp*q;else if(l.base==='cont')x=N/pc*q;else x=N*q;
@@ -109,15 +115,18 @@ function compute(D){
   D.supplyIn.forEach(s=>{let tot=0;(s.lines||[]).forEach(l=>{const q=n(l.qty),pr=n(l.price);tot+=q*pr;ev.push({k:0,date:s.date,createdAt:s.createdAt,item:l.itemId,q,pr,loc:s.locId})});supplyAmt[s.id]=tot});
   D.transfers.forEach(s=>(s.lines||[]).forEach(l=>ev.push({k:1,date:s.date,createdAt:s.createdAt,item:l.itemId,q:n(l.qty),from:s.fromId,to:s.toId,tid:s.id})));
   D.runs.forEach(r=>(r.supplies||[]).forEach((l,ix)=>ev.push({k:2,date:r.date,createdAt:r.createdAt,item:l.itemId,q:n(l.qty),loc:l.locId||r.factoryId,run:r.id,ix})));
+  /* مستلزمات التحميل لكل حاوية في فاتورة التصدير — من مخزن مصنع التحميل */
+  const loadIss={};D.sales.forEach(s=>{if(s.kind==='farz'||!s.cont)return;(s.lines||[]).forEach((l,li)=>{const ld=l.ld;if(!ld)return;const rr=RN[l.runId]||{};(ld.sup||[]).forEach((x,ix)=>{const q=n(x.qty);if(q>0)ev.push({k:3,date:s.date,createdAt:s.createdAt,item:x.itemId,q,loc:ld.locId||rr.factoryId,sale:s.id,li,ix})})})});
   ev.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(b.o||0)-(a.o||0)||a.k-b.k||(a.createdAt||'').localeCompare(b.createdAt||''));
   const warns=[];
   ev.forEach(e=>{const s=SUP[e.item];if(!s)return;
     if(e.k===0){s.qty+=e.q;s.val+=e.q*e.pr;if(e.pr>0||!e.open)s.last=e.pr;s.loc[e.loc]=(s.loc[e.loc]||0)+e.q;if(e.open){s.openQty=(s.openQty||0)+e.q;s.openVal=(s.openVal||0)+e.q*e.pr}else{s.inQty+=e.q;s.inVal+=e.q*e.pr}}
     else if(e.k===1){const have=s.loc[e.from]||0;if(have+1e-9<e.q)warns.push({type:'transfer',id:e.tid,item:e.item,need:e.q,have});s.loc[e.from]=have-e.q;s.loc[e.to]=(s.loc[e.to]||0)+e.q}
     else{const have=s.loc[e.loc]||0,avg=s.qty>1e-9?s.val/s.qty:(s.last||s.ref||0),cost=e.q*avg;const short=have+1e-9<e.q;
-      if(short)warns.push({type:'issue',run:e.run,item:e.item,need:e.q,have,loc:e.loc});
+      if(short)warns.push(e.k===3?{type:'load',sale:e.sale,li:e.li,item:e.item,need:e.q,have,loc:e.loc}:{type:'issue',run:e.run,item:e.item,need:e.q,have,loc:e.loc});
       s.qty-=e.q;s.val-=cost;if(Math.abs(s.qty)<1e-9){s.qty=0;s.val=0}s.loc[e.loc]=have-e.q;s.outQty+=e.q;s.outVal+=cost;
-      (issue[e.run]=issue[e.run]||[])[e.ix]={itemId:e.item,qty:e.q,avg,cost,loc:e.loc,short,noPrice:!(avg>0)}}});
+      const rec={itemId:e.item,qty:e.q,avg,cost,loc:e.loc,short,noPrice:!(avg>0)};
+      if(e.k===3){const a=loadIss[e.sale]=loadIss[e.sale]||[];(a[e.li]=a[e.li]||[])[e.ix]=rec}else (issue[e.run]=issue[e.run]||[])[e.ix]=rec}});
   Object.values(SUP).forEach(s=>{s.avg=s.qty>1e-9?s.val/s.qty:(s.last||s.ref||0)});
 
   /* مبيعات الفرزة الفعلية لكل تشغيلة (صافي بعد مصروفات البيع) — ده اللي بيتخصم من التكلفة، مش سعر التقدير */
@@ -131,13 +140,13 @@ function compute(D){
 
   /* المبيعات */
   const SL={},sold={};D.runs.forEach(r=>sold[r.id]={fin:0,farz:0});
-  D.sales.forEach(s=>{const x=saleInfo(s,{R,RN,S});SL[s.id]=x;x.lines.forEach(l=>{if(sold[l.runId])sold[l.runId][x.kind==='farz'?'farz':'fin']+=l.kg})});
+  D.sales.forEach(s=>{const x=saleInfo(s,{R,RN,S,loadIss});SL[s.id]=x;x.lines.forEach(l=>{if(sold[l.runId])sold[l.runId][x.kind==='farz'?'farz':'fin']+=l.kg})});
   Object.keys(R).forEach(id=>{const r=R[id],so=sold[id];r.soldFin=so.fin;r.soldFarz=so.farz;r.stockFin=r.fin-so.fin;r.stockFarz=r.farz-so.farz});
   /* ربحية التشغيلة: إيراد سطورها ناقص تكلفتها ناقص نصيبها من مصروفات البيع */
-  Object.values(R).forEach(r=>{r.sales={rev:0,cogs:0,exp:0,profit:0,finRev:0,farzRev:0}});
+  Object.values(R).forEach(r=>{r.sales={rev:0,cogs:0,exp:0,load:0,profit:0,finRev:0,farzRev:0}});
   Object.values(SL).forEach(x=>x.lines.forEach(l=>{const r=R[l.runId];if(!r)return;const ex=x.rev?x.exp*l.egp/x.rev:(x.lines.length?x.exp/x.lines.length:0);
-    r.sales.rev+=l.egp;r.sales.cogs+=l.cogs;r.sales.exp+=ex;r.sales[x.kind==='farz'?'farzRev':'finRev']+=l.egp}));
-  Object.values(R).forEach(r=>{r.sales.profit=r.sales.rev-r.sales.cogs-r.sales.exp;r.stockVal=r.stockFin*r.finKgCost+r.stockFarz*r.farzStockKg});
+    r.sales.rev+=l.egp;r.sales.cogs+=l.cogs;r.sales.exp+=ex;r.sales.load+=l.load;r.sales[x.kind==='farz'?'farzRev':'finRev']+=l.egp}));
+  Object.values(R).forEach(r=>{r.sales.profit=r.sales.rev-r.sales.cogs-r.sales.exp-r.sales.load;r.stockVal=r.stockFin*r.finKgCost+r.stockFarz*r.farzStockKg});
 
   /* الحسابات */
   const L={};D.parties.forEach(p=>{L[p.id]=[];const oi=openInfo(p);if(oi)L[p.id].push({date:oi.date,ord:0,kind:'open',ref:p.id,doc:'رصيد افتتاحي',info:oi.txt,desc:oi.txt,usd:oi.usd,rate:oi.rate,dr:oi.side==='c'?0:oi.egp,cr:oi.side==='c'?oi.egp:0})});
@@ -147,11 +156,12 @@ function compute(D){
   D.supplyIn.forEach(s=>post(s.supplierId,{date:s.date,createdAt:s.createdAt,kind:'supplyIn',doc:'فاتورة مستلزمات',info:'مستلزمات'+(s.invNo?' — فاتورة المورد '+s.invNo:''),ref:s.id,no:s.no,desc:'فاتورة مستلزمات #'+(s.no||'')+(s.invNo?' (فاتورة المورد '+s.invNo+')':''),dr:0,cr:supplyAmt[s.id]||0}));
   D.runs.forEach(r=>(r.costs||[]).forEach(c=>{if(c.partyId)post(c.partyId,{date:r.date,createdAt:r.createdAt,kind:'runCost',doc:'تكلفة تشغيل',info:(c.name||'تكلفة')+' — تشغيلة #'+(r.no||''),ref:r.id,no:r.no,desc:(c.name||'تكلفة')+' — تشغيلة #'+(r.no||''),dr:0,cr:n(c.amount)})}));
   D.sales.forEach(s=>{const x=SL[s.id];if(x.cont){const $=x.cur==='USD'?'$':'',u=x.cur==='USD'?'':' ج';post(s.customerId,{date:s.date,createdAt:s.createdAt,kind:'sale',doc:'فاتورة بيع تصدير',ref:s.id,no:s.no,inv:x.invNo,info:(x.invNo?'فاتورة '+x.invNo+' — ':'')+contN(x.nCont)+' — '+fmt(x.tons,3)+' طن'+(x.cur==='USD'?' — $'+fmt(x.amount,2)+' × '+fmt(x.rate,2):''),desc:'بيع تصدير #'+(s.no||'')+(x.invNo?' — فاتورة '+x.invNo:'')+' — '+contN(x.nCont),subs:x.lines.map((l,i)=>({i:i+1,cont:l.cont,bl:l.bl,tons:l.tons,price:l.price,amount:l.amount,cur:x.cur,txt:'حاوية '+(l.cont||'—')+(l.bl?' · بوليصة '+l.bl:'')+' · '+fmt(l.tons,3)+' طن · سعر الكيلو '+$+pfmt(l.price)+u+' · القيمة '+$+fmt(l.amount,2)+u})),dr:x.rev,cr:0})}else post(s.customerId,{date:s.date,createdAt:s.createdAt,kind:'sale',doc:x.kind==='farz'?'فاتورة بيع فرزة':'فاتورة بيع تصدير',info:fmt(x.kg,0)+' كجم'+(x.cur==='USD'?' — $'+fmt(x.amount,2)+' × '+fmt(x.rate,2):'')+(s.invNo?' — فاتورة '+s.invNo:''),ref:s.id,no:s.no,desc:(x.kind==='farz'?'بيع فرزة':'بيع تصدير')+' #'+(s.no||'')+(x.cur==='USD'?' — $'+fmt(x.amount,2)+' × '+fmt(x.rate,2):'')+(s.invNo?' — فاتورة '+s.invNo:''),dr:x.rev,cr:0});
+    if(x.cont)x.lines.forEach((l,li)=>l.loadSvcs.forEach(v=>{if(v.partyId&&v.amount)post(v.partyId,{date:s.date,createdAt:s.createdAt,kind:'loadSvc',doc:'خدمة تحميل',info:v.name+' — حاوية '+(l.cont||(li+1))+(x.invNo?' — فاتورة '+x.invNo:''),ref:s.id,no:s.no,desc:v.name+' — حاوية '+(l.cont||(li+1)),dr:0,cr:v.amount})}));
     (s.expenses||[]).forEach(e=>{if(e.partyId)post(e.partyId,{date:s.date,createdAt:s.createdAt,kind:'saleExp',doc:'مصروف بيع',info:(e.name||'مصروف')+' — بيع #'+(s.no||''),ref:s.id,no:s.no,desc:(e.name||'مصروف')+' — بيع #'+(s.no||''),dr:0,cr:n(e.amount)})})});
   D.payments.forEach(p=>{const a=n(p.amount)*(p.cur==='USD'?n(p.rate):1),m=p.method==='transfer'?'تحويل':'كاش';
     post(p.partyId,{date:p.date,createdAt:p.createdAt,kind:'payment',doc:(p.dir==='in'?'تحصيل ':'دفعة ')+m,info:[p.cur==='USD'?'$'+fmt(n(p.amount),2)+' × '+fmt(n(p.rate),2):'',p.ref?'مرجع '+p.ref:'',p.notes||''].filter(Boolean).join(' — ')||'—',ref:p.id,no:p.no,desc:(p.dir==='in'?'تحصيل ':'دفعة ')+m+(p.cur==='USD'?' $'+fmt(n(p.amount),2)+' × '+fmt(n(p.rate),2):'')+(p.ref?' — مرجع '+p.ref:'')+(p.notes?' — '+p.notes:''),dr:p.dir==='in'?0:a,cr:p.dir==='in'?a:0})});
   const BAL={};Object.keys(L).forEach(id=>{L[id].sort((a,b)=>(a.kind==='open'?-1:0)-(b.kind==='open'?-1:0)||ord(a,b));let b=0,dr=0,cr=0;L[id].forEach(e=>{b+=e.dr-e.cr;dr+=e.dr;cr+=e.cr;e.bal=b});BAL[id]={dr,cr,bal:b}});
-  return{P,SUP,issue,R,SL,L,BAL,warns,unlinkedTrans,supplyAmt,method}
+  return{P,SUP,issue,loadIss,R,SL,L,BAL,warns,unlinkedTrans,supplyAmt,method}
 }
 
 function runCost(r,c){
@@ -233,13 +243,15 @@ function runCost(r,c){
 
 function saleInfo(s,c){
   const kind=s.kind==='farz'?'farz':'export',cur=s.cur==='USD'?'USD':'EGP',rate=cur==='USD'?n(s.rate):1,cont=kind==='export'&&!!s.cont;
-  const lines=(s.lines||[]).map(l=>{const r=c.R[l.runId],rr=c.RN[l.runId]||{};let kg,amount;
+  const lines=(s.lines||[]).map((l,li)=>{const r=c.R[l.runId],rr=c.RN[l.runId]||{};let kg,amount;
     if(cont){kg=n(l.tons)*1000;amount=kg*n(l.price)}else if(kind==='export'){const ck=r?r.cartonKg:10;kg=n(l.cartons)*ck;amount=kg/1000*n(l.price)}else{kg=n(l.kg);amount=kg*n(l.price)}
-    const kc=r?(kind==='farz'?r.farzKgCost:r.finKgCost):0;return{runId:l.runId,runNo:rr.no,cartons:cont?(r&&r.cartonKg?kg/r.cartonKg:0):n(l.cartons),kg,tons:kg/1000,cont:cont?String(l.cont||'').trim():'',bl:cont?String(l.bl||'').trim():'',price:n(l.price),amount,egp:amount*rate,kgCost:kc,cogs:kg*kc}});
+    const kc=r?(kind==='farz'?r.farzKgCost:r.finKgCost):0;const LI=(c.loadIss&&c.loadIss[s.id]&&c.loadIss[s.id][li])||[];const ld=cont&&l.ld?l.ld:null;
+    const loadSup=ld?LI.reduce((a,z)=>a+(z?z.cost:0),0):0,loadSvc=ld?(ld.svc||[]).reduce((a,z)=>a+n(z.amount),0):0;
+    return{loadSup,loadSvc,load:loadSup+loadSvc,loadItems:ld?(ld.sup||[]).map((z,ix)=>Object.assign({k:z.k,auto:!!z.auto,ovr:!!z.ovr},LI[ix]||{itemId:z.itemId,qty:n(z.qty),cost:0})):[],loadSvcs:ld?(ld.svc||[]).map(z=>({k:z.k,name:z.name,amount:n(z.amount),partyId:z.partyId||'',auto:!!z.auto,ovr:!!z.ovr})):[],loadLoc:ld?(ld.locId||rr.factoryId||''):'',runId:l.runId,runNo:rr.no,cartons:cont?(r&&r.cartonKg?kg/r.cartonKg:0):n(l.cartons),kg,tons:kg/1000,cont:cont?String(l.cont||'').trim():'',bl:cont?String(l.bl||'').trim():'',price:n(l.price),amount,egp:amount*rate,kgCost:kc,cogs:kg*kc}});
   const amount=lines.reduce((a,l)=>a+l.amount,0),rev=amount*rate,cogs=lines.reduce((a,l)=>a+l.cogs,0);
   const exps=(s.expenses||[]).map(e=>({name:e.name,amount:n(e.amount),partyId:e.partyId||''}));const exp=exps.reduce((a,e)=>a+e.amount,0);
-  const kg=lines.reduce((a,l)=>a+l.kg,0),profit=rev-cogs-exp;
-  return{id:s.id,no:s.no,invNo:String(s.invNo||'').trim(),date:s.date,customerId:s.customerId,kind,cur,rate,cont,nCont:cont?lines.length:0,tons:kg/1000,lines,amount,rev,cogs,exps,exp,kg,profit,margin:rev?profit/rev*100:0,perTon:kg?profit/kg*1000:0}
+  const kg=lines.reduce((a,l)=>a+l.kg,0),load=lines.reduce((a,l)=>a+l.load,0),loadSup=lines.reduce((a,l)=>a+l.loadSup,0),loadSvc=lines.reduce((a,l)=>a+l.loadSvc,0),profit=rev-cogs-exp-load;
+  return{id:s.id,no:s.no,invNo:String(s.invNo||'').trim(),date:s.date,customerId:s.customerId,kind,cur,rate,cont,nCont:cont?lines.length:0,tons:kg/1000,lines,amount,rev,cogs,exps,exp,load,loadSup,loadSvc,kg,profit,margin:rev?profit/rev*100:0,perTon:kg?profit/kg*1000:0}
 }
 
 /* ميزان البسكول بالصافي: الفواتير القديمة (قائم/فارغ) صافيها = القائم − الفارغ */
@@ -250,6 +262,6 @@ function pfmt(x){x=+x||0;return fmt(x,Math.abs(Math.round(x*1000)-Math.round(x*1
 function fmt(x,d){x=Math.round((+x||0)*Math.pow(10,d))/Math.pow(10,d)+0;return x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 
-g.ERP={ensureSeedItems,DEF_BOM,BASE_L,bomOf,bomQty,bomSvc,openInfo,SEED_T,DEF_SUPPLIES,DEF_INPUTS,fcDefaults,fcCalc,parse,n,seed,compute,runCost,saleInfo,dmy,parseDmy,cairoIso,cairoTime,fmt,pfmt,contN,pNet,migrate,uid,COLLS,PTYPES,COST_CATS,STOCK_ITEMS,FACTORIES,VARIETIES};
+g.ERP={loadPal,bomLoadQty,bomLoadSvc,ensureSeedItems,DEF_BOM,BASE_L,bomOf,bomQty,bomSvc,openInfo,SEED_T,DEF_SUPPLIES,DEF_INPUTS,fcDefaults,fcCalc,parse,n,seed,compute,runCost,saleInfo,dmy,parseDmy,cairoIso,cairoTime,fmt,pfmt,contN,pNet,migrate,uid,COLLS,PTYPES,COST_CATS,STOCK_ITEMS,FACTORIES,VARIETIES};
 if(typeof module!=='undefined')module.exports=g.ERP;
 })(typeof window!=='undefined'?window:globalThis);
