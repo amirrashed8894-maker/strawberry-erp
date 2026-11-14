@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const VER='1.2.2',E=ERP,n=E.n,fm=E.fmt;
+const VER='1.2.3',E=ERP,n=E.n,fm=E.fmt;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const f0=x=>fm(x,0),f2=x=>fm(x,2),f1=x=>fm(x,1);
@@ -8,20 +8,20 @@ const N=x=>'<span class="num">'+x+'</span>';
 const today=()=>E.cairoIso();
 let D=null,C=null,F=null,UI={buyTab:'raw',accTab:'sup',stockTab:'fin',moreTab:'',flt:{}};
 const SUPT=['raw','supply','transport','service'],CUST=['export','farz'];
-const NUMK=['gross','tare','disc','price','sacks','sackKg','amount','qty','kg','cartons','farzSacks','cartonKg','farzSackKg','farzTemp','farzExtraKg','rate','open','refPrice','usdRate'];
+const NUMK=['gross','tare','disc','price','sacks','sackKg','amount','qty','kg','net','cartons','farzSacks','cartonKg','farzSackKg','farzTemp','farzExtraKg','rate','open','refPrice','usdRate','tons'];
 
 /* ===== بيانات ===== */
 const S=()=>D.settings[0];
 const get=(c,id)=>D[c].find(x=>x.id===id);
 const name=(c,id)=>{const x=get(c,id);return x?x.name:'—'};
-function recompute(){C=E.compute(D)}
+function recompute(){E.migrate(D);C=E.compute(D)}
 function nextNo(c){return D[c].reduce((a,x)=>Math.max(a,n(x.no)),0)+1}
 function normalize(o){if(Array.isArray(o))return o.map(normalize);if(o&&typeof o==='object'){const r={};Object.keys(o).forEach(k=>{if(k[0]==='_')return;let v=o[k];
   if(typeof v==='string'&&NUMK.indexOf(k)>=0){const p=E.parse(v);v=v.trim()===''?'':(isFinite(p)?p:v)}r[k]=(k==='est'||k==='inputs')?JSON.parse(JSON.stringify(v)):normalize(v)});return r}return o}
 /* ===== سجل التعديلات: كل تعديل على فاتورة/دفعة/كمية بيتسجل «معدل يوم/شهر/سنة ساعة — قديم ← جديد» (داخلي بس، مش بيظهر في أي حاجة للعميل) ===== */
 const LOGC=['purchases','transports','payments','supplyIn','transfers','runs','sales'];
 const FL={date:'التاريخ',no:'الرقم',supplierId:'المورد',transporterId:'مورد النقل',customerId:'العميل',partyId:'الحساب',varietyId:'الصنف',factoryId:'المصنع',locId:'المخزن',fromId:'من مخزن',toId:'إلى مخزن',plate:'العربية',ticketNo:'تذكرة الميزان',
-  gross:'القائم',tare:'الفارغ',disc:'خصم الميزان',price:'السعر',sacks:'الشكاير',sackKg:'وزن الشيكارة',lotNo:'اللوت',amount:'المبلغ',method:'طريقة الدفع',cur:'العملة',rate:'سعر الدولار',dir:'النوع',ref:'المرجع',invNo:'رقم الفاتورة',
+  net:'الصافي',gross:'القائم',tare:'الفارغ',disc:'خصم الميزان',price:'السعر',sacks:'الشكاير',sackKg:'وزن الشيكارة',lotNo:'اللوت',amount:'المبلغ',method:'طريقة الدفع',cur:'العملة',rate:'سعر الدولار',dir:'النوع',ref:'المرجع',invNo:'رقم الفاتورة',cont:'رقم الحاوية',bl:'رقم البوليصة',tons:'الطن',
   cartons:'الكراتين',cartonKg:'وزن الكرتونة',farzSacks:'شكاير الفرزة',farzSackKg:'وزن شيكارة الفرزة',farzExtraKg:'فرزة سايبة',farzTemp:'سعر الفرزة المؤقت',kind:'نوع البيع',purchaseIds:'الفواتير',runId:'التشغيلة',notes:'الملاحظات',
   yieldBySupplier:'الإنتاج لكل مورد',est:'التقدير',qty:'الكمية',kg:'الكجم',itemId:'الصنف',purchaseId:'الفاتورة',name:'البند'};
 const AL={lines:'سطر',inputs:'خام',supplies:'مستلزم',costs:'تكلفة',expenses:'مصروف'};
@@ -145,7 +145,7 @@ VIEWS.sales=function(){const L=D.sales.slice().sort((a,b)=>(b.date||'').localeCo
   let rev=0,pr=0;L.forEach(s=>{rev+=C.SL[s.id].rev;pr+=C.SL[s.id].profit});
   let h='<div class="quick q2"><button class="btn pri" data-act="new" data-k="sale" data-kind="export">+ بيع تصدير</button><button class="btn pri" data-act="new" data-k="sale" data-kind="farz">+ بيع فرزة</button></div>';
   if(L.length)h+='<div class="kpis k2 card">'+kpi('إجمالي المبيعات',N(f0(rev))+' ج')+kpi('صافي الربح',N(f0(pr))+' ج',rev?N(f1(pr/rev*100)+'%'):'')+'</div>';
-  h+=L.length?'<div class="list">'+L.map(s=>{const x=C.SL[s.id];return '<button class="row" data-act="edit" data-k="sale" data-id="'+s.id+'"><div><b>#'+s.no+' '+(x.kind==='farz'?'فرزة':'تصدير')+' — '+esc(name('parties',s.customerId))+'</b> <span class="mut">'+E.dmy(s.date)+'</span><div class="mut sm">'+N(f0(x.kg))+' كجم · '+(x.cur==='USD'?N('$'+f2(x.amount))+' · ':'')+'ربح '+N(f0(x.profit))+' ج ('+N(f1(x.margin))+'%)</div>'+enote(s,1)+'</div><div class="amt">'+N(f0(x.rev))+'<small>ج</small></div></button>'}).join('')+'</div>':empty('مفيش مبيعات.');
+  h+=L.length?'<div class="list">'+L.map(s=>{const x=C.SL[s.id];return '<button class="row" data-act="edit" data-k="sale" data-id="'+s.id+'"><div><b>#'+s.no+' '+(x.kind==='farz'?'فرزة':'تصدير')+' — '+esc(name('parties',s.customerId))+'</b> <span class="mut">'+E.dmy(s.date)+'</span><div class="mut sm">'+(x.cont?(x.invNo?'<b class="num">'+esc(x.invNo)+'</b> · ':'')+E.contN(x.nCont)+' · '+N(f3(x.tons))+' طن · ':N(f0(x.kg))+' كجم · ')+(x.cur==='USD'?N('$'+f2(x.amount))+' · ':'')+'ربح '+N(f0(x.profit))+' ج ('+N(f1(x.margin))+'%)</div>'+enote(s,1)+'</div><div class="amt">'+N(f0(x.rev))+'<small>ج</small></div></button>'}).join('')+'</div>':empty('مفيش مبيعات.');
   h+='<div class="quick q2"><button class="btn" data-act="report" data-k="profitSum">الربحية — مجمل PDF</button><button class="btn" data-act="report" data-k="profitDet">الربحية — مفصل PDF</button></div>';return h};
 
 /* ----- الحسابات ----- */
@@ -164,7 +164,7 @@ VIEWS.party=function(r){const p=get('parties',r.id);if(!p)return empty('الحس
   h+='<div class="quick q2"><button class="btn pri" data-act="new" data-k="payment" data-party="'+p.id+'" data-dir="'+(CUST.indexOf(p.type)>=0?'in':'out')+'">'+(CUST.indexOf(p.type)>=0?'+ تحصيل':'+ دفعة')+'</button><button class="btn" data-act="report" data-k="stmt" data-id="'+p.id+'">كشف حساب PDF</button></div>';
   h+='<section class="card"><div class="tw"><table class="t st"><tr><th>التاريخ</th><th>المستند</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr>'+
     (fl.from?'<tr class="g"><td></td><td>رصيد منقول</td><td>قبل '+E.dmy(fl.from)+'</td><td></td><td></td><td class="v">'+balTxt(st.open)+'</td></tr>':'')+
-    st.rows.map(e=>'<tr data-act="openref" data-kind="'+e.kind+'" data-id="'+(e.ref||'')+'"><td class="v">'+E.dmy(e.date)+'</td><td>'+esc(e.doc||'')+(e.no!=null&&e.no!==''?' <b class="num">#'+esc(e.no)+'</b>':'')+'</td><td>'+esc(e.info||e.desc)+(SUPT.indexOf(p.type)>=0?(L=>L.length?'<div class="enote">'+L.map(esc).join('<br>')+'</div>':'')(stmtNotes(e,2)):'')+'</td><td class="v">'+(e.dr?f2(e.dr):'')+'</td><td class="v">'+(e.cr?f2(e.cr):'')+'</td><td class="v">'+balTxt(e.bal)+'</td></tr>').join('')+
+    st.rows.map(e=>'<tr data-act="openref" data-kind="'+e.kind+'" data-id="'+(e.ref||'')+'"><td class="v">'+E.dmy(e.date)+'</td><td>'+esc(e.doc||'')+(e.no!=null&&e.no!==''?' <b class="num">#'+esc(e.no)+'</b>':'')+'</td><td>'+esc(e.info||e.desc)+(e.subs&&e.subs.length?'<div class="subs">'+e.subs.map(z=>'<div>'+esc(z.i+'. '+z.txt)+'</div>').join('')+'</div>':'')+(SUPT.indexOf(p.type)>=0?(L=>L.length?'<div class="enote">'+L.map(esc).join('<br>')+'</div>':'')(stmtNotes(e,2)):'')+'</td><td class="v">'+(e.dr?f2(e.dr):'')+'</td><td class="v">'+(e.cr?f2(e.cr):'')+'</td><td class="v">'+balTxt(e.bal)+'</td></tr>').join('')+
     '<tr class="tt"><td></td><td></td><td>الإجمالي</td><td class="v">'+f2(st.dr)+'</td><td class="v">'+f2(st.cr)+'</td><td class="v">'+balTxt(st.close)+'</td></tr></table></div>'+(st.rows.length?'':'<div class="empty sm">مفيش حركات في الفترة دي.</div>')+'<div class="hint">«عليه» = مستحق لنا عنده، «له» = مستحق له علينا.</div></section>';
   return h};
 const REFC={purchase:'purchases',transport:'transports',supplyIn:'supplyIn',runCost:'runs',saleExp:'sales',payment:'payments',sale:'sales'};
@@ -243,11 +243,11 @@ function closeForm(){const st=F&&F.staleRender;F=null;if(st)setTimeout(render,0)
 function drawForm(){const sc=$('#sheet').scrollTop;$('#sheet').innerHTML='<div class="sh"><div class="shb"><button class="btn sm ghost" data-act="fclose">إلغاء</button><h2>'+F.title+'</h2><button class="btn sm pri" data-act="fsave">حفظ</button></div>'+
   '<div class="shc"><div class="grid">'+F.body(F.d)+(!F.isNew&&LOGC.indexOf(F.coll)>=0&&F.d.edits&&F.d.edits.length?'<div class="f full">'+enote(F.d)+'</div>':'')+'</div><div id="fsum">'+(F.summary?F.summary(F.d):'')+'</div><div id="ferr"></div>'+
   '<div class="actions a2"><button class="btn pri" data-act="fsave">حفظ</button>'+(!F.isNew&&F.del?'<button class="btn danger" data-act="fdel">حذف</button>':'<button class="btn ghost" data-act="fclose">إلغاء</button>')+'</div></div></div>';$('#sheet').scrollTop=sc}
-function liveSum(){if(F&&F.summary)$('#fsum').innerHTML=F.summary(F.d);$('#ferr').innerHTML=''}
+function liveSum(){if(F&&F.live)F.live(F.d);if(F&&F.summary)$('#fsum').innerHTML=F.summary(F.d);$('#ferr').innerHTML=''}
 function dateOk(v){return /^\d{4}-\d{2}-\d{2}$/.test(v||'')}
 function lineBox(title,arrP,cols,tpl,addTxt){const L=getP(F.d,arrP)||[];return '<div class="f full lines"><label>'+title+'</label>'+L.map((l,i)=>'<div class="ln">'+cols(l,i,arrP+'.'+i)+'<button type="button" class="x" data-ldel="'+arrP+'.'+i+'" aria-label="حذف">×</button></div>').join('')+'<button type="button" class="btn ghost wide" data-ladd="'+arrP+'" data-tpl=\''+esc(JSON.stringify(tpl))+'\'>'+addTxt+'</button></div>'}
 function lsel(p,opts,ph,o){return '<select class="sel" data-p="'+p+'" data-rr="1"'+(o&&o.newType?' data-new="'+o.newType+'"':'')+'>'+opt(opts,getP(F.d,p),ph||'— اختار —')+(o&&o.newType?'<option value="__new">+ جديد…</option>':'')+'</select>'}
-function lin(p,ph,o){o=o||{};const v=getP(F.d,p);return '<label class="li"><span>'+ph+'</span><input '+(o.txt?'class="txt" ':'inputmode="decimal" ')+'data-p="'+p+'" value="'+esc(v==null?'':v)+'"'+(o.list?' list="'+o.list+'"':'')+(o.rr?' data-rr="1"':'')+'></label>'}
+function lin(p,ph,o){o=o||{};const v=getP(F.d,p);return '<label class="li"><span>'+ph+'</span><input '+(o.ltr?'class="txt ltr" dir="ltr" autocapitalize="characters" autocomplete="off" ':o.txt?'class="txt" ':'inputmode="decimal" ')+'data-p="'+p+'" value="'+esc(v==null?'':v)+'"'+(o.list?' list="'+o.list+'"':'')+(o.rr?' data-rr="1"':'')+'></label>'}
 function sumBox(rows){return '<div class="fsum">'+rows.filter(Boolean).map(r=>'<div class="'+(r[2]||'')+'"><span>'+r[0]+'</span><b class="num">'+r[1]+'</b></div>').join('')+'</div>'}
 function tmpCompute(c,rec){const D2={};E.COLLS.forEach(k=>D2[k]=D[k]);D2[c]=D[c].filter(x=>x.id!==rec.id).concat([Object.assign({},rec,{id:rec.id||'__draft',createdAt:rec.createdAt||'9999'})]);return{C:E.compute(D2),id:rec.id||'__draft'}}
 
@@ -256,14 +256,14 @@ const FORMS={};
 FORMS.purchase=function(rec){const s=S();rec=rec||{date:today(),no:nextNo('purchases'),varietyId:(D.varieties[0]||{}).id,factoryId:(D.factories[0]||{}).id,sackKg:s.sackKg||25,disc:''};
   return{title:rec.id?'فاتورة خام #'+rec.no:'فاتورة شراء خام',coll:'purchases',rec,del:true,
   body:d=>fi('التاريخ','date',{date:1})+fi('رقم الفاتورة','no',{})+fs('المورد','supplierId',parties(['raw']).map(p=>[p.id,p.name]),{full:1,newType:'raw'})+fs('الصنف','varietyId',varOpts(),{newType:'variety'})+fs('المصنع (رايح فين)','factoryId',facOpts(),{newType:'factory'})+
-    sec('ميزان البسكول')+fi('رقم العربية','plate',{txt:1})+fi('رقم تذكرة الميزان','ticketNo',{txt:1})+fi('الوزن القائم','gross',{u:'كجم'})+fi('الفارغ','tare',{u:'كجم'})+fi('خصم الميزان المتفق عليه','disc',{u:'%',hint:'الافتراضي من حساب المورد، وتقدر تغيره للفاتورة دي'})+fi('سعر الكيلو','price',{u:'ج/كجم'})+
+    sec('ميزان البسكول')+fi('رقم العربية','plate',{txt:1})+fi('رقم تذكرة الميزان','ticketNo',{txt:1})+fi('الوزن الصافي (كجم)','net',{u:'كجم',hint:'صافي تذكرة الميزان — الخصم بيتحسب عليه'})+fi('خصم الميزان المتفق عليه','disc',{u:'%',hint:'الافتراضي من حساب المورد، وتقدر تغيره للفاتورة دي'})+fi('سعر الكيلو','price',{u:'ج/كجم'})+
     sec('الشكاير')+fi('عدد الشكاير','sacks',{})+fi('وزن الشيكارة','sackKg',{u:'كجم'})+fi('رقم لوت المورد / الجودة','lotNo',{txt:1,hint:'مثلًا FS-2611-01 — للربط مع برنامج الجودة'})+fi('ملاحظات','notes',{txt:1}),
-  summary:d=>{const net=Math.max(n(d.gross)-n(d.tare),0),dd=n(d.disc),pk=net*(1-dd/100),amt=pk*n(d.price);const x=d.id&&C.P[d.id];
+  summary:d=>{const net=Math.max(n(d.net),0),dd=n(d.disc),pk=net*(1-dd/100),amt=pk*n(d.price);const x=d.id&&C.P[d.id];
     return sumBox([['الصافي على الميزان',f0(net)+' كجم'],dd?['خصم '+f2(dd)+'% = '+f1(net-pk)+' كجم','قيمته '+f2((net-pk)*n(d.price))+' ج']:null,['الوزن المحاسب عليه',f1(pk)+' كجم'],['قيمة الفاتورة',f2(amt)+' ج','big'],
       n(d.sacks)?['متوسط الشيكارة',f2(net/n(d.sacks))+' كجم (المسجل '+f2(n(d.sackKg))+')']:null,x&&x.trans?['نقل محمّل على الفاتورة',f2(x.trans)+' ج']:null,x?['المستخدم في تشغيلات',f0(x.used)+' كجم — باقي '+f0(net-x.used)]:null])},
   validate:d=>{const e=[];if(!dateOk(d.date))e.push('التاريخ مكتوب غلط (يوم/شهر/سنة)');if(!d.supplierId)e.push('اختار المورد');if(!d.varietyId)e.push('اختار الصنف');if(!d.factoryId)e.push('اختار المصنع');
-    const net=n(d.gross)-n(d.tare);if(!(n(d.gross)>0))e.push('الوزن القائم لازم أكبر من صفر');if(!(net>0))e.push('الفارغ لازم أقل من القائم');if(n(d.disc)<0||n(d.disc)>=100)e.push('خصم الميزان من 0 لأقل من 100%');if(!(n(d.price)>0))e.push('سعر الكيلو لازم أكبر من صفر');
-    ['gross','tare','disc','price','sacks','sackKg'].forEach(k=>{if(String(d[k]==null?'':d[k]).trim()!==''&&!isFinite(E.parse(d[k])))e.push('رقم مكتوب غلط في خانة '+k)});
+    const net=n(d.net);if(String(d.net==null?'':d.net).trim()===''||!(net>0))e.push('الوزن الصافي لازم أكبر من صفر');if(n(d.disc)<0||n(d.disc)>=100)e.push('خصم الميزان من 0 لأقل من 100%');if(!(n(d.price)>0))e.push('سعر الكيلو لازم أكبر من صفر');
+    ['net','disc','price','sacks','sackKg'].forEach(k=>{if(String(d[k]==null?'':d[k]).trim()!==''&&!isFinite(E.parse(d[k])))e.push('رقم مكتوب غلط في خانة '+k)});
     if(d.id&&C.P[d.id]&&C.P[d.id].used>net+1e-6)e.push('الصافي أقل من المستخدم في التشغيلات ('+f0(C.P[d.id].used)+' كجم)');
     if(d.id&&C.P[d.id]&&C.P[d.id].uses.some(u=>{const r=get('runs',u.runId);return r&&r.varietyId!==d.varietyId}))e.push('الفاتورة داخلة في تشغيلة صنف تاني — مينفعش تغير الصنف');return e},
   onChange:(d,p)=>{if(p==='supplierId'){const sp=get('parties',d.supplierId);if(sp&&sp.disc!=null&&sp.disc!=='')d.disc=sp.disc}},
@@ -342,21 +342,49 @@ FORMS.run=function(rec){const s=S();if(!rec){const v=D.varieties[0];rec={date:to
   after:rec=>{location.hash='#/run/'+rec.id}}};
 function farzHint(d){if(!d.id)return 'الفرزة بتتخصم من التكلفة بسعر البيع الفعلي لعملاء الفرزة. لحد ما تتباع، تقدر تكتب هنا سعر مؤقت (التكلفة هتفضل «مبدئي»)، أو تسيبه فاضي.';const x=C.R[d.id];if(!x)return '';
   return 'اتباع '+f0(x.farzSoldKg)+' كجم من '+f0(x.farz)+(x.farzSoldKg>0.005?' بمتوسط صافي '+f2(x.farzAvg)+' ج/كجم':'')+'. السعر المؤقت بيتطبق بس على الباقي ('+f0(x.farzUnsold)+' كجم)، وبيتجاهل لما الفرزة كلها تتباع.'}
-FORMS.sale=function(rec,o){o=o||{};rec=rec||{date:today(),no:nextNo('sales'),kind:o.kind||'export',cur:(o.kind||'export')==='export'?'USD':'EGP',rate:S().usdRate,customerId:(o.kind||'export')==='export'?((parties(['export'])[0]||{}).id||''):'',lines:[{runId:'',cartons:'',kg:'',price:''}],expenses:[]};
-  return{title:rec.id?'بيع #'+rec.no:'بيع جديد',coll:'sales',rec,del:true,
-  body:d=>{const ex=d.kind!=='farz';const cs=parties([ex?'export':'farz']);const runs=D.runs.filter(r=>{const x=C.R[r.id];return (ex?x.stockFin:x.stockFarz)>0.005||(d.lines||[]).some(l=>l.runId===r.id)}).map(r=>{const x=C.R[r.id];return [r.id,runLabel(r)+' — متاح '+(ex?f0(x.stockFin/x.cartonKg)+' كرتونة':f0(x.stockFarz)+' كجم')]});
-    return fseg('نوع البيع','kind',[['export','تصدير (إنتاج نهائي)'],['farz','فرزة']])+fi('التاريخ','date',{date:1})+fi('رقم','no',{})+fs('العميل','customerId',cs.map(p=>[p.id,p.name]),{full:1,newType:ex?'export':'farz'})+fi('رقم الفاتورة / الحاوية','invNo',{txt:1})+
-    fseg('العملة','cur',[['EGP','جنيه'],['USD','دولار']],{half:1})+(d.cur==='USD'?fi('سعر الدولار','rate',{u:'ج'}):'')+
-    lineBox(ex?'الكميات (كراتين من تشغيلة)':'الكميات (كيلو فرزة من تشغيلة)','lines',(l,i,p)=>lsel(p+'.runId',runs,'التشغيلة')+(ex?lin(p+'.cartons','كراتين'):lin(p+'.kg','كجم'))+lin(p+'.price',ex?'السعر/طن ('+(d.cur==='USD'?'$':'ج')+')':'السعر/كجم ('+(d.cur==='USD'?'$':'ج')+')'),{runId:'',cartons:'',kg:'',price:''},'+ سطر')+
-    lineBox('مصروفات على البيع ده (نولون، تخليص، نقل…) بالجنيه','expenses',(l,i,p)=>lin(p+'.name','البند',{txt:1})+lin(p+'.amount','المبلغ ج')+lsel(p+'.partyId',parties(['transport','service','supply']).map(x=>[x.id,x.name]),'على حساب (اختياري)',{newType:'service'}),{name:'',amount:'',partyId:''},'+ مصروف')+fi('ملاحظات','notes',{txt:1,full:1})},
-  summary:d=>{const t=tmpCompute('sales',d),x=t.C.SL[t.id];if(!x)return '';return sumBox([['الكمية',f0(x.kg)+' كجم'+(x.kind==='export'?' = '+f3(x.kg/1000)+' طن':'')],x.cur==='USD'?['القيمة بالدولار','$'+f2(x.amount)]:null,['الإيراد بالجنيه',f2(x.rev)+' ج'],['تكلفة البضاعة (من تكلفة التشغيلة)',f2(x.cogs)+' ج'],x.exp?['مصروفات البيع',f2(x.exp)+' ج']:null,['صافي الربح',f2(x.profit)+' ج ('+f1(x.margin)+'%)','big']])},
-  validate:d=>{const e=[];if(!dateOk(d.date))e.push('التاريخ مكتوب غلط');if(!d.customerId)e.push('اختار العميل');if(d.cur==='USD'&&!(n(d.rate)>0))e.push('اكتب سعر الدولار');if(!(d.lines||[]).length)e.push('ضيف سطر');
-    const ex=d.kind!=='farz',use={};(d.lines||[]).forEach((l,i)=>{if(!l.runId)e.push('سطر '+(i+1)+': اختار التشغيلة');const q=ex?n(l.cartons):n(l.kg);if(!(q>0))e.push('سطر '+(i+1)+': الكمية');if(!(n(l.price)>0))e.push('سطر '+(i+1)+': السعر');
-      const r=C.R[l.runId];if(r)use[l.runId]=(use[l.runId]||0)+(ex?q*r.cartonKg:q)});
+/* فاتورة التصدير بالحاويات: كل سطر = حاوية (رقم الحاوية، البوليصة، الكمية بالطن، السعر للكيلو) — رقم الفاتورة تلقائي FR27001… */
+const INV0=27001;
+function nextInv(exceptId){const m=D.sales.reduce((a,x)=>{if(x.id===exceptId)return a;const r=/^FR(\d+)$/i.exec(String(x.invNo||'').trim());return r?Math.max(a,+r[1]):a},INV0-1);return 'FR'+(m+1)}
+const cKey=v=>String(v||'').replace(/\s+/g,'').toUpperCase();
+function contHead(d,i){const l=(d.lines||[])[i]||{},val=n(l.tons)*1000*n(l.price);return '<b>حاوية '+(i+1)+'</b>'+(val>0?' — <span class="num">'+(d.cur==='USD'?'$':'')+f2(val)+(d.cur==='USD'?'':' ج')+'</span>':'')}
+function contTpl(d){const L=d.lines||[],l=L[L.length-1]||{};return {runId:l.runId||'',cont:'',bl:l.bl||'',tons:'',price:l.price==null?'':l.price}}
+function saleRuns(d,ex){return D.runs.filter(r=>{const x=C.R[r.id];return (ex?x.stockFin:x.stockFarz)>0.005||(d.lines||[]).some(l=>l.runId===r.id)}).map(r=>{const x=C.R[r.id];return [r.id,runLabel(r)+' — متاح '+(ex?(d.cont?f3(x.stockFin/1000)+' طن':f0(x.stockFin/x.cartonKg)+' كرتونة'):f0(x.stockFarz)+' كجم')]})}
+async function askContainers(o,addTo){const runs=saleRuns({lines:[],cont:true},true);const tp=addTo?contTpl(addTo):{};
+  const v=await dlg({kind:'count',title:addTo?'تضيف كام حاوية؟':'عدد الحاويات في الفاتورة؟',ok:addTo?'إضافة':'متابعة',fields:[{k:'n',label:'عدد الحاويات',num:1,int:1,val:addTo?'1':'',ph:'مثلاً 3'},
+    {k:'runId',label:'التشغيلة لكل الحاويات (تقدر تغيرها لكل حاوية)',opts:[['','— بعدين —']].concat(runs),val:tp.runId||''},{k:'price',label:'السعر للكيلو لكل الحاويات (اختياري)',num:1,val:tp.price==null?'':tp.price}],
+    check:x=>{const q=String(x.n||'').trim();if(!/^\d+$/.test(q)||+q<1)return 'اكتب عدد صحيح من 1 وطالع';if(String(x.price||'').trim()&&!(E.parse(x.price)>0))return 'السعر مكتوب غلط';return ''}});
+  if(!v)return null;const k=parseInt(v.n,10);const t={runId:v.runId||'',cont:'',bl:'',tons:'',price:String(v.price||'').trim()?E.parse(v.price):''};return Array.from({length:k},()=>Object.assign({},t))}
+FORMS.sale=function(rec,o){o=o||{};const k0=o.kind||'export';rec=rec||{date:today(),no:nextNo('sales'),kind:k0,cont:k0==='export',invNo:k0==='export'?nextInv():'',cur:k0==='export'?'USD':'EGP',rate:S().usdRate,customerId:k0==='export'?((parties(['export'])[0]||{}).id||''):'',lines:o.lines||[k0==='export'?{runId:'',cont:'',bl:'',tons:'',price:''}:{runId:'',cartons:'',kg:'',price:''}],expenses:[]};
+  return{title:rec.id?'بيع #'+rec.no+(rec.cont&&rec.invNo?' — '+esc(rec.invNo):''):'بيع جديد',coll:'sales',rec,del:true,
+  body:d=>{const ex=d.kind!=='farz',ct=ex&&d.cont;const cs=parties([ex?'export':'farz']);const runs=saleRuns(d,ex);const cu=d.cur==='USD'?'$':'ج';
+    const lines=ct?'<div class="f full lines conts"><label>الحاويات ('+(d.lines||[]).length+')</label>'+(d.lines||[]).map((l,i)=>{const p='lines.'+i;return '<div class="ln"><span class="lt cn" data-cn="'+i+'">'+contHead(d,i)+'</span>'+
+        lsel(p+'.runId',runs,'التشغيلة')+lin(p+'.cont','رقم الحاوية',{ltr:1})+lin(p+'.bl','رقم البوليصة',{ltr:1})+lin(p+'.tons','الكمية (طن)')+lin(p+'.price','السعر/كجم ('+cu+')')+'<button type="button" class="x" data-ldel="'+p+'" aria-label="حذف">×</button></div>'}).join('')+
+        '<div class="quick q2"><button type="button" class="btn ghost" data-ladd="lines" data-tpl=\''+esc(JSON.stringify(contTpl(d)))+'\'>+ حاوية</button><button type="button" class="btn ghost" data-act="addConts">+ عدد حاويات…</button></div></div>'
+      :lineBox(ex?'الكميات (كراتين من تشغيلة)':'الكميات (كيلو فرزة من تشغيلة)','lines',(l,i,p)=>lsel(p+'.runId',runs,'التشغيلة')+(ex?lin(p+'.cartons','كراتين'):lin(p+'.kg','كجم'))+lin(p+'.price',ex?'السعر/طن ('+cu+')':'السعر/كجم ('+cu+')'),{runId:'',cartons:'',kg:'',price:''},'+ سطر');
+    return fseg('نوع البيع','kind',[['export','تصدير (إنتاج نهائي)'],['farz','فرزة']])+fi('التاريخ','date',{date:1})+fi('رقم','no',{})+fs('العميل','customerId',cs.map(p=>[p.id,p.name]),{full:1,newType:ex?'export':'farz'})+
+    fi(ct?'رقم الفاتورة':'رقم الفاتورة / الحاوية','invNo',{txt:1,hint:ct?'تلقائي (FR27001، FR27002…) وتقدر تعدله — مايتكررش':''})+
+    fseg('العملة','cur',[['EGP','جنيه'],['USD','دولار']],{half:1})+(d.cur==='USD'?fi('سعر الدولار','rate',{u:'ج'}):'')+lines+
+    lineBox('مصروفات على البيع ده (نولون، تخليص، نقل…) بالجنيه','expenses',(l,i,p)=>lin(p+'.name','البند',{txt:1})+lin(p+'.amount','المبلغ ج')+lsel(p+'.partyId',parties(['transport','service','supply']).map(x=>[x.id,x.name]),'على حساب (اختياري)',{newType:'service'}),{name:'',amount:'',partyId:''},'+ مصروف')+fi('ملاحظات','notes',{txt:1,full:1})+
+    (d.id&&get('sales',d.id)?'<div class="f full"><button type="button" class="btn wide" data-act="report" data-k="inv" data-id="'+d.id+'">فاتورة البيع PDF / طباعة</button><div class="hint">من آخر نسخة محفوظة</div></div>':'')},
+  live:d=>{if(d.kind!=='farz'&&d.cont)document.querySelectorAll('#sheet [data-cn]').forEach(e=>{e.innerHTML=contHead(d,+e.dataset.cn)})},
+  summary:d=>{const t=tmpCompute('sales',d),x=t.C.SL[t.id];if(!x)return '';
+    return sumBox([x.cont?['عدد الحاويات',String(x.nCont)]:null,['الكمية',x.cont?f3(x.tons)+' طن ('+f0(x.kg)+' كجم)':f0(x.kg)+' كجم'+(x.kind==='export'?' = '+f3(x.kg/1000)+' طن':'')],x.cur==='USD'?['القيمة بالدولار','$'+f2(x.amount)]:null,['الإيراد بالجنيه',f2(x.rev)+' ج'],['تكلفة البضاعة (من تكلفة التشغيلة)',f2(x.cogs)+' ج'],x.exp?['مصروفات البيع',f2(x.exp)+' ج']:null,['صافي الربح',f2(x.profit)+' ج ('+f1(x.margin)+'%)','big']])},
+  validate:d=>{const e=[];if(!dateOk(d.date))e.push('التاريخ مكتوب غلط');if(!d.customerId)e.push('اختار العميل');if(d.cur==='USD'&&!(n(d.rate)>0))e.push('اكتب سعر الدولار');const ex=d.kind!=='farz',ct=ex&&d.cont,use={},seen={};if(!(d.lines||[]).length)e.push(ct?'ضيف حاوية':'ضيف سطر');
+    const inv=String(d.invNo||'').trim();
+    if(ct&&!inv)e.push('اكتب رقم الفاتورة (المقترح '+nextInv(d.id)+')');
+    if(inv&&D.sales.some(x=>x.id!==d.id&&cKey(x.invNo)===cKey(inv)))e.push('رقم الفاتورة '+inv+' متسجل قبل كده (المقترح '+nextInv(d.id)+')');
+    (d.lines||[]).forEach((l,i)=>{const w=ct?'حاوية '+(i+1):'سطر '+(i+1);if(!l.runId)e.push(w+': اختار التشغيلة');
+      if(ct){const c=cKey(l.cont);if(!c)e.push(w+': اكتب رقم الحاوية');else if(seen[c])e.push('رقم الحاوية '+String(l.cont).trim()+' متكرر في الفاتورة (حاوية '+seen[c]+' وحاوية '+(i+1)+')');else seen[c]=i+1}
+      const q=ct?n(l.tons):ex?n(l.cartons):n(l.kg);if(!(q>0))e.push(w+': الكمية');if(!(n(l.price)>0))e.push(w+': السعر');
+      const r=C.R[l.runId];if(r)use[l.runId]=(use[l.runId]||0)+(ct?q*1000:ex?q*r.cartonKg:q)});
     const old={};const o2=d.id&&get('sales',d.id);if(o2&&(o2.kind!=='farz')===ex)(C.SL[o2.id].lines).forEach(l=>old[l.runId]=(old[l.runId]||0)+l.kg);
-    Object.keys(use).forEach(id=>{const r=C.R[id];const av=(ex?r.stockFin:r.stockFarz)+(old[id]||0);if(use[id]>av+1e-6)e.push('تشغيلة #'+r.no+': المتاح '+f0(av)+' كجم بس')});
+    Object.keys(use).forEach(id=>{const r=C.R[id];const av=(ex?r.stockFin:r.stockFarz)+(old[id]||0);if(use[id]>av+1e-6)e.push('تشغيلة #'+r.no+': المتاح '+f0(av)+' كجم'+(ct?' ('+f3(av/1000)+' طن)':'')+' بس، والمطلوب '+f0(use[id])+' كجم')});
     (d.expenses||[]).forEach((l,i)=>{if(!(n(l.amount)>0))e.push('مصروف '+(i+1)+': المبلغ')});return e},
-  onChange:(d,p)=>{if(p==='kind'){d.customerId='';d.lines=[{runId:'',cartons:'',kg:'',price:''}];d.cur=d.kind==='farz'?'EGP':'USD';if(d.kind!=='farz')d.customerId=(parties(['export'])[0]||{}).id||''}}}};
+  confirm:d=>{if(!(d.kind!=='farz'&&d.cont))return '';const other={};D.sales.forEach(x=>{if(x.id===d.id)return;(x.lines||[]).forEach(l=>{const c=cKey(l.cont);if(c)(other[c]=other[c]||[]).push(x.invNo||('#'+x.no))})});
+    const dup=(d.lines||[]).filter(l=>other[cKey(l.cont)]).map(l=>'• '+String(l.cont).trim()+' — في فاتورة '+[...new Set(other[cKey(l.cont)])].join('، '));
+    return dup.length?'أرقام حاويات موجودة في فواتير تانية:\n'+dup.join('\n')+'\nتحفظ برضه؟':''},
+  onChange:(d,p)=>{if(p==='kind'){d.customerId='';d.cur=d.kind==='farz'?'EGP':'USD';if(d.kind!=='farz'){d.customerId=(parties(['export'])[0]||{}).id||'';d.cont=true;if(!String(d.invNo||'').trim())d.invNo=nextInv(d.id);d.lines=[{runId:'',cont:'',bl:'',tons:'',price:''}]}
+    else{if(/^FR\d+$/i.test(String(d.invNo||'').trim())&&!d.id)d.invNo='';d.cont=false;d.lines=[{runId:'',cartons:'',kg:'',price:''}]}}}}};
 FORMS.party=function(rec,o){o=o||{};rec=rec||{type:o.type||'raw',name:'',openSide:'d'};
   return{title:rec.id?rec.name:'حساب جديد',coll:'parties',rec,del:true,
   body:d=>fs('النوع','type',Object.keys(E.PTYPES).map(k=>[k,E.PTYPES[k]]),{full:1,ph:''})+fi('الاسم','name',{txt:1,full:1})+fi('الاسم بالإنجليزي','nameEn',{txt:1})+fi('التليفون','phone',{txt:1})+(d.type==='raw'?fi('خصم الميزان الافتراضي','disc',{u:'%',hint:'بيتحط تلقائي في فواتير المورد ده'}):'')+
@@ -374,7 +402,8 @@ FORMS.item=function(rec){rec=rec||{name:'',unit:'وحدة',refPrice:''};return{t
   body:d=>fi('الاسم','name',{txt:1,full:1})+fi('الوحدة','unit',{txt:1})+fi('سعر مرجعي','refPrice',{u:'ج',hint:'بيستخدم بس لو اتصرف قبل أي فاتورة شراء'}),validate:d=>String(d.name||'').trim()?[]:['اكتب الاسم'],
   canDel:d=>D.supplyIn.some(x=>(x.lines||[]).some(l=>l.itemId===d.id))||D.runs.some(x=>(x.supplies||[]).some(l=>l.itemId===d.id))||D.transfers.some(x=>(x.lines||[]).some(l=>l.itemId===d.id))?'الصنف عليه حركات':''}};
 const KMAP={purchase:'purchases',transport:'transports',payment:'payments',supplyIn:'supplyIn',transfer:'transfers',run:'runs',sale:'sales',party:'parties',factory:'factories',variety:'varieties',item:'items'};
-function openK(k,id,o){const rec=id?JSON.parse(JSON.stringify(get(KMAP[k],id))):null;openForm(FORMS[k](rec,o))}
+async function openK(k,id,o){o=o||{};if(k==='sale'&&!id&&(o.kind||'export')!=='farz'){const L=await askContainers(o);if(!L)return;o=Object.assign({},o,{kind:'export',lines:L})}
+  const rec=id?JSON.parse(JSON.stringify(get(KMAP[k],id))):null;openForm(FORMS[k](rec,o))}
 const NUMBERED=['purchases','transports','payments','supplyIn','transfers','runs','sales'];
 function commonErrs(d){const e=[];if(NUMBERED.indexOf(F.coll)>=0){const no=String(d.no==null?'':d.no).trim();if(!no)e.push('اكتب الرقم');else if(D[F.coll].some(x=>x.id!==d.id&&String(x.no==null?'':x.no).trim()===no))e.push('الرقم '+no+' متسجل قبل كده — كل رقم لازم يبقى مرة واحدة (الرقم المقترح '+nextNo(F.coll)+')')}
   const neg=[];(function walk(o,pth){if(Array.isArray(o))o.forEach((v,i)=>walk(v,pth+'.'+i));else if(o&&typeof o==='object')Object.keys(o).forEach(k=>{if(k==='est')return;walk(o[k],pth?pth+'.'+k:k)});else{const k=pth.split('.').pop();if(NUMK.indexOf(k)>=0&&String(o==null?'':o).trim()!==''){const v=E.parse(o);if(!isFinite(v))neg.push('رقم مكتوب غلط: «'+o+'»');else if(v<0)neg.push('مينفعش رقم بالسالب: «'+o+'»')}}})(d,'');
@@ -445,6 +474,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest('[data-go],
   if(a==='ui'){UI[t.dataset.k]=t.dataset.v;render()}
   else if(a==='new')openK(t.dataset.k,null,{dir:t.dataset.dir,party:t.dataset.party,type:t.dataset.type,kind:t.dataset.kind});
   else if(a==='edit')openK(t.dataset.k,t.dataset.id);
+  else if(a==='addConts'){if(!F)return;const L=await askContainers({},F.d);if(L&&F){F.d.lines=(F.d.lines||[]).concat(L);drawForm();toast('اتضاف '+L.length+' حاوية')}}
   else if(a==='fclose')closeForm();else if(a==='fsave')saveForm();else if(a==='fdel')delForm();
   else if(a==='toggleEst'){F.openEst=!F.openEst}
   else if(a==='estReset'){const v=get('varieties',F.d.varietyId);if(v){F.d.est=JSON.parse(JSON.stringify(v.est));F.openEst=true;drawForm()}}

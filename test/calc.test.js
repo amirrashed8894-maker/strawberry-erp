@@ -38,4 +38,16 @@ assert.equal(E.parseDmy('٠٥/١١/٢٠٢٦'),'2026-11-05');assert.equal(E.parse
 // 9) المبلغ بالحروف
 {global.window={addEventListener(){}};global.document={addEventListener(){},querySelector(){}};global.ERP=E;require('../report.js');const w=window.RPT.moneyWords;
  assert.equal(w(150000),'فقط مائة وخمسون ألف جنيه مصري لا غير');assert.equal(w(2000),'فقط ألفان جنيه مصري لا غير');assert.equal(w(1234567.89),'فقط مليون ومائتان وأربعة وثلاثون ألف وخمسمائة وسبعة وستون جنيه مصري وتسعة وثمانون قرش لا غير');assert.equal(w(0.5),'فقط خمسون قرش لا غير')}
+
+/* v1.2.3: ميزان بالصافي — الفواتير القديمة (قائم/فارغ) بتتحول لصافي = القائم − الفارغ ونفس الأرقام بالظبط */
+{const leg=JSON.parse(require('fs').readFileSync(__dirname+'/scenario100_legacy.json','utf8')).data,net=JSON.parse(require('fs').readFileSync(__dirname+'/scenario100.json','utf8')).data;
+ const sig=C=>JSON.stringify([Object.values(C.P).map(x=>[x.net,x.payKg,x.amount,x.trans]),Object.values(C.R).map(r=>[r.perTon,r.finKgCost,r.stockVal]),Object.keys(C.L).sort().map(k=>C.L[k].reduce((a,e)=>a+e.dr-e.cr,0).toFixed(4))]);
+ const before=sig(E.compute(leg));assert.equal(before,sig(E.compute(net)),'legacy gross/tare = net');
+ const k=E.migrate(leg);assert.equal(k,12);assert.ok(leg.purchases.every(p=>!('gross' in p)&&!('tare' in p)&&p.net>0));assert.equal(sig(E.compute(leg)),before,'after migrate same');
+ assert.equal(E.migrate(leg),0,'idempotent');assert.equal(E.pNet({gross:5000,tare:6000}),0);assert.equal(E.pNet({net:'7,500'}),7500);
+ /* فاتورة الحاويات: طن × 1000 × سعر الكيلو */
+ const d2=JSON.parse(JSON.stringify(net));d2.sales.push({id:'cx',no:99,date:'2026-11-14',kind:'export',cont:true,invNo:'FR27001',customerId:'cus-fussga',cur:'USD',rate:50,lines:[{runId:'r4',cont:'A1',bl:'B1',tons:1.5,price:1.2},{runId:'r4',cont:'A2',bl:'',tons:'0.25',price:'1.2'}],expenses:[{name:'نولون',amount:700,partyId:'T1'}]});
+ const C2=E.compute(d2),x=C2.SL.cx;assert.ok(Math.abs(x.kg-1750)<1e-9&&Math.abs(x.amount-2100)<1e-9&&Math.abs(x.rev-105000)<1e-6&&x.nCont===2&&x.invNo==='FR27001');
+ assert.ok(Math.abs(C2.R.r4.stockFin-(E.compute(net).R.r4.stockFin-1750))<1e-6);const e=C2.L['cus-fussga'].find(e=>e.ref==='cx');assert.equal(e.subs.length,2);assert.equal(C2.L.T1.filter(e=>e.ref==='cx'&&e.kind==='saleExp').length,1,'expense posted on container sale');assert.ok(Math.abs(x.exp-700)<1e-9);assert.ok(/A1 · بوليصة B1 · 1\.500 طن · سعر الكيلو \$1\.20 · القيمة \$1,800\.00/.test(e.subs[0].txt),e.subs[0].txt);
+ assert.equal(E.contN(1),'حاوية واحدة');assert.equal(E.contN(2),'حاويتين');assert.equal(E.contN(3),'3 حاويات');assert.equal(E.contN(25),'25 حاوية');assert.equal(E.contN(103),'103 حاويات')}
 console.log('calc tests OK');

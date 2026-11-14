@@ -69,7 +69,7 @@ function compute(D){
   const PT=byId(D.parties),IT=byId(D.items),RN=byId(D.runs);
   /* فواتير الخام */
   const P={};
-  D.purchases.forEach(p=>{const gross=n(p.gross),tare=n(p.tare),net=Math.max(gross-tare,0),d=n(p.disc),payKg=net*(1-d/100),price=n(p.price),amount=payKg*price;
+  D.purchases.forEach(p=>{const net=pNet(p),d=n(p.disc),payKg=net*(1-d/100),price=n(p.price),amount=payKg*price;
     P[p.id]={id:p.id,rec:p,net,payKg,d,price,amount,discKg:net-payKg,discVal:(net-payKg)*price,trans:0,used:0,uses:[],sacks:n(p.sacks),sackKg:n(p.sackKg)||n(S.sackKg)||25}});
   /* النقل: المربوط بفواتير بيتوزع على صافي وزنها، والمربوط بتشغيلة بس بيبقى تكلفة مشتركة للتشغيلة */
   const runTrans={},unlinkedTrans=[];
@@ -119,16 +119,16 @@ function compute(D){
   Object.values(R).forEach(r=>{r.sales.profit=r.sales.rev-r.sales.cogs-r.sales.exp;r.stockVal=r.stockFin*r.finKgCost+r.stockFarz*r.farzStockKg});
 
   /* الحسابات */
-  const L={};D.parties.forEach(p=>{L[p.id]=[];const o=n(p.open);if(o)L[p.id].push({date:'',ord:0,kind:'open',desc:'رصيد أول المدة',dr:p.openSide==='c'?0:o,cr:p.openSide==='c'?o:0})});
+  const L={};D.parties.forEach(p=>{L[p.id]=[];const o=n(p.open);if(o)L[p.id].push({date:'',ord:0,kind:'open',doc:'رصيد افتتاحي',info:'رصيد أول المدة',desc:'رصيد أول المدة',dr:p.openSide==='c'?0:o,cr:p.openSide==='c'?o:0})});
   const post=(pid,e)=>{if(L[pid])L[pid].push(e)};
-  D.purchases.forEach(p=>{const x=P[p.id];post(p.supplierId,{date:p.date,createdAt:p.createdAt,kind:'purchase',ref:p.id,no:p.no,desc:'فاتورة خام #'+(p.no||'')+' — صافي '+fmt(x.net,0)+' كجم'+(x.d?' − خصم '+fmt(x.d,2)+'% = '+fmt(x.payKg,1)+' كجم':'')+' × '+fmt(x.price,2),dr:0,cr:x.amount})});
-  D.transports.forEach(t=>post(t.transporterId,{date:t.date,createdAt:t.createdAt,kind:'transport',ref:t.id,no:t.no,desc:'نقل #'+(t.no||'')+(t.plate?' — '+t.plate:'')+(t.notes?' — '+t.notes:''),dr:0,cr:n(t.amount)}));
-  D.supplyIn.forEach(s=>post(s.supplierId,{date:s.date,createdAt:s.createdAt,kind:'supplyIn',ref:s.id,no:s.no,desc:'فاتورة مستلزمات #'+(s.no||'')+(s.invNo?' (فاتورة المورد '+s.invNo+')':''),dr:0,cr:supplyAmt[s.id]||0}));
-  D.runs.forEach(r=>(r.costs||[]).forEach(c=>{if(c.partyId)post(c.partyId,{date:r.date,createdAt:r.createdAt,kind:'runCost',ref:r.id,no:r.no,desc:(c.name||'تكلفة')+' — تشغيلة #'+(r.no||''),dr:0,cr:n(c.amount)})}));
-  D.sales.forEach(s=>{const x=SL[s.id];post(s.customerId,{date:s.date,createdAt:s.createdAt,kind:'sale',ref:s.id,no:s.no,desc:(x.kind==='farz'?'بيع فرزة':'بيع تصدير')+' #'+(s.no||'')+(x.cur==='USD'?' — $'+fmt(x.amount,2)+' × '+fmt(x.rate,2):'')+(s.invNo?' — فاتورة '+s.invNo:''),dr:x.rev,cr:0});
-    (s.expenses||[]).forEach(e=>{if(e.partyId)post(e.partyId,{date:s.date,createdAt:s.createdAt,kind:'saleExp',ref:s.id,no:s.no,desc:(e.name||'مصروف')+' — بيع #'+(s.no||''),dr:0,cr:n(e.amount)})})});
+  D.purchases.forEach(p=>{const x=P[p.id];post(p.supplierId,{date:p.date,createdAt:p.createdAt,kind:'purchase',doc:'فاتورة خام',info:'صافي الميزان '+fmt(x.net,0)+' كجم'+(x.d?'، خصم '+(+x.d.toFixed(2))+'%، المحاسب عليه '+fmt(x.payKg,x.payKg%1?1:0)+' كجم':'')+'، سعر '+fmt(x.price,2)+' ج'+(p.plate?'، عربية '+p.plate:''),ref:p.id,no:p.no,desc:'فاتورة خام #'+(p.no||'')+' — صافي '+fmt(x.net,0)+' كجم'+(x.d?' − خصم '+fmt(x.d,2)+'% = '+fmt(x.payKg,1)+' كجم':'')+' × '+fmt(x.price,2),dr:0,cr:x.amount})});
+  D.transports.forEach(t=>post(t.transporterId,{date:t.date,createdAt:t.createdAt,kind:'transport',doc:'نقل',info:'نقلة'+(t.plate?' — '+t.plate:'')+(t.notes?' — '+t.notes:''),ref:t.id,no:t.no,desc:'نقل #'+(t.no||'')+(t.plate?' — '+t.plate:'')+(t.notes?' — '+t.notes:''),dr:0,cr:n(t.amount)}));
+  D.supplyIn.forEach(s=>post(s.supplierId,{date:s.date,createdAt:s.createdAt,kind:'supplyIn',doc:'فاتورة مستلزمات',info:'مستلزمات'+(s.invNo?' — فاتورة المورد '+s.invNo:''),ref:s.id,no:s.no,desc:'فاتورة مستلزمات #'+(s.no||'')+(s.invNo?' (فاتورة المورد '+s.invNo+')':''),dr:0,cr:supplyAmt[s.id]||0}));
+  D.runs.forEach(r=>(r.costs||[]).forEach(c=>{if(c.partyId)post(c.partyId,{date:r.date,createdAt:r.createdAt,kind:'runCost',doc:'تكلفة تشغيل',info:(c.name||'تكلفة')+' — تشغيلة #'+(r.no||''),ref:r.id,no:r.no,desc:(c.name||'تكلفة')+' — تشغيلة #'+(r.no||''),dr:0,cr:n(c.amount)})}));
+  D.sales.forEach(s=>{const x=SL[s.id];if(x.cont){const $=x.cur==='USD'?'$':'',u=x.cur==='USD'?'':' ج';post(s.customerId,{date:s.date,createdAt:s.createdAt,kind:'sale',doc:'فاتورة بيع تصدير',ref:s.id,no:s.no,inv:x.invNo,info:(x.invNo?'فاتورة '+x.invNo+' — ':'')+contN(x.nCont)+' — '+fmt(x.tons,3)+' طن'+(x.cur==='USD'?' — $'+fmt(x.amount,2)+' × '+fmt(x.rate,2):''),desc:'بيع تصدير #'+(s.no||'')+(x.invNo?' — فاتورة '+x.invNo:'')+' — '+contN(x.nCont),subs:x.lines.map((l,i)=>({i:i+1,cont:l.cont,bl:l.bl,tons:l.tons,price:l.price,amount:l.amount,cur:x.cur,txt:'حاوية '+(l.cont||'—')+(l.bl?' · بوليصة '+l.bl:'')+' · '+fmt(l.tons,3)+' طن · سعر الكيلو '+$+pfmt(l.price)+u+' · القيمة '+$+fmt(l.amount,2)+u})),dr:x.rev,cr:0})}else post(s.customerId,{date:s.date,createdAt:s.createdAt,kind:'sale',doc:x.kind==='farz'?'فاتورة بيع فرزة':'فاتورة بيع تصدير',info:fmt(x.kg,0)+' كجم'+(x.cur==='USD'?' — $'+fmt(x.amount,2)+' × '+fmt(x.rate,2):'')+(s.invNo?' — فاتورة '+s.invNo:''),ref:s.id,no:s.no,desc:(x.kind==='farz'?'بيع فرزة':'بيع تصدير')+' #'+(s.no||'')+(x.cur==='USD'?' — $'+fmt(x.amount,2)+' × '+fmt(x.rate,2):'')+(s.invNo?' — فاتورة '+s.invNo:''),dr:x.rev,cr:0});
+    (s.expenses||[]).forEach(e=>{if(e.partyId)post(e.partyId,{date:s.date,createdAt:s.createdAt,kind:'saleExp',doc:'مصروف بيع',info:(e.name||'مصروف')+' — بيع #'+(s.no||''),ref:s.id,no:s.no,desc:(e.name||'مصروف')+' — بيع #'+(s.no||''),dr:0,cr:n(e.amount)})})});
   D.payments.forEach(p=>{const a=n(p.amount)*(p.cur==='USD'?n(p.rate):1),m=p.method==='transfer'?'تحويل':'كاش';
-    post(p.partyId,{date:p.date,createdAt:p.createdAt,kind:'payment',ref:p.id,no:p.no,desc:(p.dir==='in'?'تحصيل ':'دفعة ')+m+(p.cur==='USD'?' $'+fmt(n(p.amount),2)+' × '+fmt(n(p.rate),2):'')+(p.ref?' — مرجع '+p.ref:'')+(p.notes?' — '+p.notes:''),dr:p.dir==='in'?0:a,cr:p.dir==='in'?a:0})});
+    post(p.partyId,{date:p.date,createdAt:p.createdAt,kind:'payment',doc:(p.dir==='in'?'تحصيل ':'دفعة ')+m,info:[p.cur==='USD'?'$'+fmt(n(p.amount),2)+' × '+fmt(n(p.rate),2):'',p.ref?'مرجع '+p.ref:'',p.notes||''].filter(Boolean).join(' — ')||'—',ref:p.id,no:p.no,desc:(p.dir==='in'?'تحصيل ':'دفعة ')+m+(p.cur==='USD'?' $'+fmt(n(p.amount),2)+' × '+fmt(n(p.rate),2):'')+(p.ref?' — مرجع '+p.ref:'')+(p.notes?' — '+p.notes:''),dr:p.dir==='in'?0:a,cr:p.dir==='in'?a:0})});
   const BAL={};Object.keys(L).forEach(id=>{L[id].sort((a,b)=>(a.kind==='open'?-1:0)-(b.kind==='open'?-1:0)||ord(a,b));let b=0,dr=0,cr=0;L[id].forEach(e=>{b+=e.dr-e.cr;dr+=e.dr;cr+=e.cr;e.bal=b});BAL[id]={dr,cr,bal:b}});
   return{P,SUP,issue,R,SL,L,BAL,warns,unlinkedTrans,supplyAmt,method}
 }
@@ -211,19 +211,24 @@ function runCost(r,c){
 }
 
 function saleInfo(s,c){
-  const kind=s.kind==='farz'?'farz':'export',cur=s.cur==='USD'?'USD':'EGP',rate=cur==='USD'?n(s.rate):1;
+  const kind=s.kind==='farz'?'farz':'export',cur=s.cur==='USD'?'USD':'EGP',rate=cur==='USD'?n(s.rate):1,cont=kind==='export'&&!!s.cont;
   const lines=(s.lines||[]).map(l=>{const r=c.R[l.runId],rr=c.RN[l.runId]||{};let kg,amount;
-    if(kind==='export'){const ck=r?r.cartonKg:10;kg=n(l.cartons)*ck;amount=kg/1000*n(l.price)}else{kg=n(l.kg);amount=kg*n(l.price)}
-    const kc=r?(kind==='farz'?r.farzKgCost:r.finKgCost):0;return{runId:l.runId,runNo:rr.no,cartons:n(l.cartons),kg,price:n(l.price),amount,egp:amount*rate,kgCost:kc,cogs:kg*kc}});
+    if(cont){kg=n(l.tons)*1000;amount=kg*n(l.price)}else if(kind==='export'){const ck=r?r.cartonKg:10;kg=n(l.cartons)*ck;amount=kg/1000*n(l.price)}else{kg=n(l.kg);amount=kg*n(l.price)}
+    const kc=r?(kind==='farz'?r.farzKgCost:r.finKgCost):0;return{runId:l.runId,runNo:rr.no,cartons:cont?(r&&r.cartonKg?kg/r.cartonKg:0):n(l.cartons),kg,tons:kg/1000,cont:cont?String(l.cont||'').trim():'',bl:cont?String(l.bl||'').trim():'',price:n(l.price),amount,egp:amount*rate,kgCost:kc,cogs:kg*kc}});
   const amount=lines.reduce((a,l)=>a+l.amount,0),rev=amount*rate,cogs=lines.reduce((a,l)=>a+l.cogs,0);
   const exps=(s.expenses||[]).map(e=>({name:e.name,amount:n(e.amount),partyId:e.partyId||''}));const exp=exps.reduce((a,e)=>a+e.amount,0);
   const kg=lines.reduce((a,l)=>a+l.kg,0),profit=rev-cogs-exp;
-  return{id:s.id,no:s.no,date:s.date,customerId:s.customerId,kind,cur,rate,lines,amount,rev,cogs,exps,exp,kg,profit,margin:rev?profit/rev*100:0,perTon:kg?profit/kg*1000:0}
+  return{id:s.id,no:s.no,invNo:String(s.invNo||'').trim(),date:s.date,customerId:s.customerId,kind,cur,rate,cont,nCont:cont?lines.length:0,tons:kg/1000,lines,amount,rev,cogs,exps,exp,kg,profit,margin:rev?profit/rev*100:0,perTon:kg?profit/kg*1000:0}
 }
 
+/* ميزان البسكول بالصافي: الفواتير القديمة (قائم/فارغ) صافيها = القائم − الفارغ */
+function pNet(p){return p.net!=null&&String(p.net).trim()!==''?Math.max(n(p.net),0):Math.max(n(p.gross)-n(p.tare),0)}
+function migrate(D){let k=0;(D.purchases||[]).forEach(p=>{if((p.net==null||String(p.net).trim()==='')&&(p.gross!=null||p.tare!=null)){p.net=Math.max(n(p.gross)-n(p.tare),0);k++}if('gross' in p||'tare' in p){delete p.gross;delete p.tare}});return k}
+function contN(k){k=+k||0;return k===1?'حاوية واحدة':k===2?'حاويتين':(k%100>=3&&k%100<=10)?k+' حاويات':k+' حاوية'}
+function pfmt(x){x=+x||0;return fmt(x,Math.abs(Math.round(x*1000)-Math.round(x*100)*10)>0?3:2)}
 function fmt(x,d){x=Math.round((+x||0)*Math.pow(10,d))/Math.pow(10,d)+0;return x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 
-g.ERP={SEED_T,DEF_SUPPLIES,DEF_INPUTS,fcDefaults,fcCalc,parse,n,seed,compute,runCost,saleInfo,dmy,parseDmy,cairoIso,cairoTime,fmt,uid,COLLS,PTYPES,COST_CATS,STOCK_ITEMS,FACTORIES,VARIETIES};
+g.ERP={SEED_T,DEF_SUPPLIES,DEF_INPUTS,fcDefaults,fcCalc,parse,n,seed,compute,runCost,saleInfo,dmy,parseDmy,cairoIso,cairoTime,fmt,pfmt,contN,pNet,migrate,uid,COLLS,PTYPES,COST_CATS,STOCK_ITEMS,FACTORIES,VARIETIES};
 if(typeof module!=='undefined')module.exports=g.ERP;
 })(typeof window!=='undefined'?window:globalThis);

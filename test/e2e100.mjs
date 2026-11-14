@@ -43,7 +43,7 @@ for(const x of SC.transfers){await newK('transfer');await fill('date',dmy(x.date
 // 3) 12 عربية بسكول
 for(const x of SC.purchases){await newK('purchase');await fill('date',dmy(x.date));await fill('no',x.no);await selV('supplierId',ID[x.supplierId]);await selV('factoryId',x.factoryId);
   const dd=await p.inputValue(S+'input[data-p="disc"]');const def=SC.parties.find(q=>q.id===x.supplierId).disc;if(x.no===1)ok('خصم الميزان بيتحط من المورد ('+def+'%)',dd===String(def));
-  await fill('plate',x.plate);await fill('ticketNo',x.ticketNo);await fill('gross',x.gross);await fill('tare',x.tare);await p.fill(S+'input[data-p="disc"]',String(x.disc));await fill('price',x.price);await fill('sacks',x.sacks);await fill('lotNo',x.lotNo);
+  await fill('plate',x.plate);await fill('ticketNo',x.ticketNo);await fill('net',x.net);await p.fill(S+'input[data-p="disc"]',String(x.disc));await fill('price',x.price);await fill('sacks',x.sacks);await fill('lotNo',x.lotNo);
   await save();ID[x.id]=await aid('purchases',x.no)}
 ok('إجمالي الخام على الميزان 100,000 كجم',near(await p.evaluate(()=>Object.values(APP.C.P).reduce((a,x)=>a+x.net,0)),100000));
 // 4) النقل على الفواتير
@@ -61,9 +61,9 @@ for(const x of SC.runs){await newK('run');await fill('date',dmy(x.date));await f
 // نقلة داخلية على تشغيلة 4 (تكلفة مشتركة)
 {const x=SC.transports.find(t=>t.runId);await newK('transport');await fill('date',dmy(x.date));await fill('no',x.no);await selV('transporterId',ID[x.transporterId]);await fill('amount',x.amount);await fset('mode','r');await selV('runId',ID[x.runId]);await fill('notes',x.notes);await save()}
 // 6) المبيعات (تصدير بالدولار وفرزة بالجنيه)
-for(const x of SC.sales){await newK('sale',{kind:x.kind});await fill('date',dmy(x.date));await fill('no',x.no);await selV('customerId',ID[x.customerId]);await fill('invNo',x.invNo);
+for(const x of SC.sales){const CT=x.kind!=='farz';if(CT)await p.evaluate(k=>window.__dlgCount=k,x.lines.length);await newK('sale',{kind:x.kind});await fill('date',dmy(x.date));await fill('no',x.no);await selV('customerId',ID[x.customerId]);await fill('invNo',x.invNo);
   if(x.cur==='USD'){await fset('cur','USD');await fill('rate',x.rate)}else await fset('cur','EGP');
-  for(let i=0;i<x.lines.length;i++){const l=x.lines[i];if(i)await add('lines');await selV(`lines.${i}.runId`,ID[l.runId]);if(x.kind==='farz')await fill(`lines.${i}.kg`,l.kg);else await fill(`lines.${i}.cartons`,l.cartons);await fill(`lines.${i}.price`,l.price)}
+  for(let i=0;i<x.lines.length;i++){const l=x.lines[i];if(i&&!CT)await add('lines');await selV(`lines.${i}.runId`,ID[l.runId]);if(!CT){await fill(`lines.${i}.kg`,l.kg);await fill(`lines.${i}.price`,l.price)}else{/* بالحاويات: الكراتين × 10 كجم ÷ 1000 = طن، وسعر الطن ÷ 1000 = سعر الكيلو */await fill(`lines.${i}.cont`,'TEST'+x.no+'C'+(i+1));await fill(`lines.${i}.bl`,'TESTBL'+x.no);await fill(`lines.${i}.tons`,String(l.cartons*10/1000));await fill(`lines.${i}.price`,String(l.price/1000))}}
   for(let i=0;i<x.expenses.length;i++){const l=x.expenses[i];await add('expenses');await fill(`expenses.${i}.name`,l.name);await fill(`expenses.${i}.amount`,l.amount);if(l.partyId)await selV(`expenses.${i}.partyId`,ID[l.partyId])}
   await save();ID[x.id]=await aid('sales',x.no)}
 // 7) الدفعات والتحصيلات (كاش وتحويل، جنيه ودولار)
@@ -85,12 +85,12 @@ fs.writeFileSync(OUT+'/numbers100.json',JSON.stringify(C,null,1));
 const base=JSON.stringify(C);
 // 9) الحالات الحدية
 const errOf=async fnFill=>{await fnFill();const e=await trySave();await close();return e};
-let e=await errOf(async()=>{await newK('purchase');await fill('no',99);await selV('supplierId',ID.R1);await fill('gross',0);await fill('tare',0);await fill('price',28)});ok('فاتورة خام بوزن صفر مرفوضة',/الوزن القائم/.test(e),e.slice(0,80));
-e=await errOf(async()=>{await newK('purchase');await fill('no',99);await selV('supplierId',ID.R1);await fill('gross',5000);await fill('tare',6000);await fill('price',28)});ok('الفارغ أكبر من القائم مرفوض',/الفارغ/.test(e));
-e=await errOf(async()=>{await newK('purchase');await fill('no',99);await selV('supplierId',ID.R1);await fill('gross',9000);await fill('tare',4000);await fill('price',-28)});ok('سعر بالسالب مرفوض',/بالسالب|سعر الكيلو/.test(e));
-e=await errOf(async()=>{await newK('purchase');await fill('no',99);await selV('supplierId',ID.R1);await fill('gross',9000);await fill('tare',4000);await p.fill(S+'input[data-p="disc"]','100');await fill('price',28)});ok('خصم ميزان 100% مرفوض',/خصم الميزان/.test(e));
-e=await errOf(async()=>{await newK('purchase');await fill('no',5);await selV('supplierId',ID.R1);await fill('gross',9000);await fill('tare',4000);await fill('price',28)});ok('رقم فاتورة مكرر مرفوض',/متسجل قبل كده/.test(e),e.slice(0,90));
-e=await errOf(async()=>{await newK('sale',{kind:'export'});await fill('no',50);await selV('customerId','cus-fussga');await fset('cur','USD');await fill('rate',50);await selV('lines.0.runId',ID.r4);await fill('lines.0.cartons',500);await fill('lines.0.price',1150)});ok('بيع أكتر من المتاح (500 كرتونة والمتاح 410) مرفوض',/المتاح 4,100/.test(e),e.slice(0,90));
+let e=await errOf(async()=>{await newK('purchase');await fill('no',99);await selV('supplierId',ID.R1);await fill('net',0);await fill('price',28)});ok('فاتورة خام بوزن صفر مرفوضة',/الوزن الصافي/.test(e),e.slice(0,80));
+e=await errOf(async()=>{await newK('purchase');await fill('no',99);await selV('supplierId',ID.R1);await fill('net',-1000);await fill('price',28)});ok('وزن صافي بالسالب مرفوض',/بالسالب|الوزن الصافي/.test(e));
+e=await errOf(async()=>{await newK('purchase');await fill('no',99);await selV('supplierId',ID.R1);await fill('net',5000);await fill('price',-28)});ok('سعر بالسالب مرفوض',/بالسالب|سعر الكيلو/.test(e));
+e=await errOf(async()=>{await newK('purchase');await fill('no',99);await selV('supplierId',ID.R1);await fill('net',5000);await p.fill(S+'input[data-p="disc"]','100');await fill('price',28)});ok('خصم ميزان 100% مرفوض',/خصم الميزان/.test(e));
+e=await errOf(async()=>{await newK('purchase');await fill('no',5);await selV('supplierId',ID.R1);await fill('net',5000);await fill('price',28)});ok('رقم فاتورة مكرر مرفوض',/متسجل قبل كده/.test(e),e.slice(0,90));
+e=await errOf(async()=>{await newK('sale',{kind:'export'});await fill('no',50);await selV('customerId','cus-fussga');await fset('cur','USD');await fill('rate',50);await selV('lines.0.runId',ID.r4);await fill('lines.0.cont','TEST-X1');await fill('lines.0.tons',5);await fill('lines.0.price',1.15)});ok('بيع أكتر من المتاح (5 طن والمتاح 4.1) مرفوض',/المتاح 4,100/.test(e),e.slice(0,90));
 e=await errOf(async()=>{await newK('sale',{kind:'farz'});await fill('no',50);await selV('customerId',ID.FZ2);await selV('lines.0.runId',ID.r1).catch(()=>{});});ok('تشغيلة فرزتها خلصت مش ظاهرة في بيع الفرزة',/اختار التشغيلة|سطر 1/.test(e));
 e=await errOf(async()=>{await newK('sale',{kind:'farz'});await fill('no',50);await selV('customerId',ID.FZ2);await selV('lines.0.runId',ID.r3);await fill('lines.0.kg',0);await fill('lines.0.price',17)});ok('كمية صفر مرفوضة',/الكمية/.test(e));
 e=await errOf(async()=>{await newK('payment',{dir:'out'});await fill('no',50);await selV('partyId',ID.R2);await fill('amount',0)});ok('دفعة بصفر مرفوضة',/المبلغ/.test(e));
@@ -104,7 +104,7 @@ const nr=await p.evaluate(()=>APP.D.runs.length);
 await newK('run');await fill('no',5);await selV('factoryId','fac3');await selV('inputs.0.purchaseId',ID.p1).catch(()=>{});
 const avail=await p.$$eval(S+'select[data-p="inputs.0.purchaseId"] option',L=>L.length);ok('مفيش خام متاح للتشغيل بعد ما الـ 100 طن اتشغلوا',avail<=1);await close();
 // نضيف عربية صغيرة عشان نجرب الصرف الزايد
-await newK('purchase');await fill('date','07/11/2026');await fill('no',13);await selV('supplierId',ID.R5);await selV('factoryId','fac3');await fill('gross',6000);await fill('tare',5000);await fill('price',30);await save();
+await newK('purchase');await fill('date','07/11/2026');await fill('no',13);await selV('supplierId',ID.R5);await selV('factoryId','fac3');await fill('net',1000);await fill('price',30);await save();
 await newK('run');await fill('date','07/11/2026');await fill('no',5);await selV('factoryId','fac3');await selV('inputs.0.purchaseId',await aid('purchases',13));await fill('inputs.0.kg',1000);await fill('cartons',70);await fill('farzSacks',8);
 await add('supplies');await selV('supplies.0.itemId','itm1');await fill('supplies.0.qty',500);await selV('supplies.0.locId','fac3');
 await p.evaluate(()=>{__dlgMode='dismiss';__dlgLog=[]});let er=await trySave();const lastDialog=await p.evaluate(()=>__dlgLog.slice(-1)[0]||'');ok('صرف 500 كرتونة من الفجر (الرصيد 200) بيسأل الأول',/الرصيد مش كفاية|أكتر من الرصيد/.test(lastDialog),lastDialog.slice(0,80));

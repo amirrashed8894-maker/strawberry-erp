@@ -145,3 +145,15 @@ details.est{border:1px solid var(--line);border-radius:12px;padding:8px 10px;bac
 #dlg .dlga{display:flex;gap:8px}
 #dlg .dlga .btn{flex:1;min-height:46px}
 @media print{#dlg{display:none!important}}
+.lines .ln .li input.ltr{direction:ltr;text-align:left;font-size:16px;text-transform:uppercase}
+.conts .ln .cn{flex:1 1 100%;color:var(--ink);font-size:14px;padding-inline-end:48px}
+.conts .quick{margin-top:2px}
+.t.st .subs{max-width:250px;white-space:normal;font-size:12px;color:var(--ink2);line-height:1.5;margin-top:4px;font-weight:400}
+.t.st .subs div{padding:3px 0;border-top:1px dashed #e3e3e3}
+.conts .ln .li{flex:1 1 40%}
+.rp tr.sub td{border-top:0;padding-top:1px;padding-bottom:1px;font-size:9.5px;color:#333}
+.rp tr.sub td.d{padding-inline-start:12px;white-space:nowrap}
+.rp tr.sub+tr:not(.sub) td{border-top:1px solid #cfcfcf}
+.rp .inv td,.rp .inv th{font-size:11px}
+.rp .inv td.v,.rp .inv td.c{white-space:nowrap}
+.rp .invtot{display:flex;gap:8px;margin:8px 0}

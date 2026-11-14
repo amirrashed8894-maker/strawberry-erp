@@ -4,8 +4,8 @@ function build(){const D=E.seed();const t='2026-11-14T08:00:00.000Z';let k=0;con
  const P=(o)=>Object.assign({createdAt:T(),updatedAt:t},o);
  D.parties.push(P({id:'sA',type:'raw',name:'تجريبي مورد خام أ',disc:2}),P({id:'sB',type:'raw',name:'تجريبي مورد خام ب',disc:3}),P({id:'tr',type:'transport',name:'تجريبي مورد نقل'}),
   P({id:'sp',type:'supply',name:'تجريبي مورد مستلزمات'}),P({id:'sv',type:'service',name:'تجريبي خدمات الثلاجة'}),P({id:'fz',type:'farz',name:'تجريبي عميل فرزة'}));
- D.purchases.push(P({id:'pA',no:1,date:'2026-11-10',supplierId:'sA',varietyId:'var1',factoryId:'fac1',plate:'تجريبي 123',gross:15000,tare:5000,disc:2,price:28,sacks:400,sackKg:25}),
-  P({id:'pB',no:2,date:'2026-11-10',supplierId:'sB',varietyId:'var1',factoryId:'fac1',plate:'تجريبي 456',gross:13000,tare:5000,disc:3,price:30,sacks:320,sackKg:25}));
+ D.purchases.push(P({id:'pA',no:1,date:'2026-11-10',supplierId:'sA',varietyId:'var1',factoryId:'fac1',plate:'تجريبي 123',net:10000,disc:2,price:28,sacks:400,sackKg:25}),
+  P({id:'pB',no:2,date:'2026-11-10',supplierId:'sB',varietyId:'var1',factoryId:'fac1',plate:'تجريبي 456',net:8000,disc:3,price:30,sacks:320,sackKg:25}));
  D.transports.push(P({id:'t1',no:1,date:'2026-11-10',transporterId:'tr',amount:9000,purchaseIds:['pA','pB']}));
  D.supplyIn.push(P({id:'si1',no:1,date:'2026-11-08',supplierId:'sp',locId:'fac1',lines:[{itemId:'itm1',qty:1500,price:16},{itemId:'itm2',qty:20,price:330},{itemId:'itm5',qty:10,price:45}]}),
   P({id:'si2',no:2,date:'2026-11-09',supplierId:'sp',locId:'fac2',lines:[{itemId:'itm1',qty:500,price:18}]}));

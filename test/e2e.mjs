@@ -35,10 +35,10 @@ await newK('transfer');await fill('date','09/11/2026');await sel('fromId','ال�
 // 3) فواتير الخام
 await newK('purchase');await fill('date','10/11/2026');await sel('supplierId','تجريبي مورد خام أ');
 ok('خصم الميزان الافتراضي من المورد',await p.inputValue(S+'input[data-p="disc"]')==='2');
-await fill('plate','تجريبي 123');await fill('gross',15000);await fill('tare',5000);await fill('price',28);await fill('sacks',400);await fill('lotNo','FS-TEST-01');
+await fill('plate','تجريبي 123');await fill('net',10000);await fill('price',28);await fill('sacks',400);await fill('lotNo','FS-TEST-01');
 const sumA=await p.textContent('#fsum');ok('ملخص الفاتورة أ = 274,400',sumA.includes('274,400.00'),sumA.replace(/\s+/g,' ').slice(0,200));await save();
-await newK('purchase');await fill('date','10/11/2026');await sel('supplierId','تجريبي مورد خام ب');await fill('plate','تجريبي 456');await fill('gross','١٣٠٠٠');await fill('tare',5000);await fill('price',30);await fill('sacks',320);await save();
-ok('أرقام عربية في الوزن القائم',await p.evaluate(()=>APP.D.purchases.find(x=>x.no===2).gross)===13000);
+await newK('purchase');await fill('date','10/11/2026');await sel('supplierId','تجريبي مورد خام ب');await fill('plate','تجريبي 456');await fill('net','٨٠٠٠');await fill('price',30);await fill('sacks',320);await save();
+ok('أرقام عربية في الوزن الصافي',await p.evaluate(()=>APP.D.purchases.find(x=>x.no===2).net)===8000);ok('مفيش قائم وفارغ في الفاتورة',!(await p.$(S+'input[data-p="gross"]'))&&await p.evaluate(()=>APP.D.purchases.every(x=>!('gross' in x)&&!('tare' in x))));
 // 4) النقل
 await newK('transport');await fill('date','10/11/2026');await sel('transporterId','تجريبي مورد نقل');await fill('amount',9000);
 for(const c of await p.$$(S+'input[data-chk="purchaseIds"]'))await c.check();await save();
@@ -62,7 +62,7 @@ await p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));a
 // 6) المبيعات
 await newK('sale',JSON.stringify({kind:'export'}));await fill('date','12/11/2026');
 ok('فوسجا مختارة تلقائي',(await p.$eval(S+'select[data-p="customerId"]',s=>s.options[s.selectedIndex].text)).includes('فوسجا'));
-await fill('rate',50);await selPart('lines.0.runId','#1');await fill('lines.0.cartons',1000);await fill('lines.0.price',1100);
+await fill('rate',50);await selPart('lines.0.runId','#1');await fill('lines.0.cont','TEST-C1');await fill('lines.0.bl','TEST-BL1');await fill('lines.0.tons',10);await fill('lines.0.price',1.1);
 await add('expenses');await fill('expenses.0.name','نقل للميناء');await fill('expenses.0.amount',6000);await selPart('expenses.0.partyId','تجريبي مورد نقل');await save();
 await newK('sale',JSON.stringify({kind:'farz'}));await fill('date','12/11/2026');await sel('customerId','تجريبي عميل فرزة');await selPart('lines.0.runId','#1');await fill('lines.0.price',18);await fill('lines.0.kg',2500);await p.click(S+'.shb [data-act="fsave"]');await p.waitForTimeout(150);ok('منع بيع فرزة أكتر من المخزون',(await p.textContent('#ferr')).includes('المتاح 2,000'));
 await fill('lines.0.kg',1500);await save();

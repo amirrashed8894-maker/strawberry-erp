@@ -4,7 +4,7 @@ d=pathlib.Path(__file__).parent;J=json.loads(pathlib.Path(sys.argv[1] if len(sys
 num=lambda x:float(x) if x not in (None,'') else 0.0
 P={}
 for p in D['purchases']:
-    net=num(p['gross'])-num(p['tare']);P[p['id']]=dict(net=net,unit=num(p['price'])*(1-num(p['disc'])/100),amount=net*(1-num(p['disc'])/100)*num(p['price']),trans=0.0,sup=p['supplierId'])
+    net=num(p['net']) if p.get('net') not in (None,'') else max(num(p.get('gross'))-num(p.get('tare')),0);P[p['id']]=dict(net=net,unit=num(p['price'])*(1-num(p['disc'])/100),amount=net*(1-num(p['disc'])/100)*num(p['price']),trans=0.0,sup=p['supplierId'])
 runTrans={}
 for t in D['transports']:
     ids=t.get('purchaseIds') or []
@@ -67,7 +67,8 @@ for s in D['sales']:
     rate=num(s['rate']) if s['cur']=='USD' else 1;rev=0;cogs=0;kg=0
     for l in s['lines']:
         r=R[l['runId']]
-        if s['kind']=='export':q=num(l['cartons'])*10;a=q/1000*num(l['price'])*rate;c=q*r['finKg']
+        if s['kind']=='export' and s.get('cont'):q=num(l.get('tons'))*1000;a=q*num(l['price'])*rate;c=q*r['finKg']
+        elif s['kind']=='export':q=num(l['cartons'])*10;a=q/1000*num(l['price'])*rate;c=q*r['finKg']
         else:q=num(l['kg']);a=q*num(l['price'])*rate;c=q*r['farzKg']
         rev+=a;cogs+=c;kg+=q
     exp=sum(num(e['amount']) for e in s.get('expenses',[]))

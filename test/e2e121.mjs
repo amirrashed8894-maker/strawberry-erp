@@ -22,8 +22,8 @@ const RX=/^معدل \d{2}\/\d{2}\/\d{4} \d{2}:\d{2} — /;
 // حفظ من غير تغيير = مفيش ملاحظة
 await edit('purchase','p2');await save();ok('حفظ من غير تغيير مابيضيفش ملاحظة',!(await edits('purchases','p2')).length);
 // 1) فاتورة خام: الوزن والسعر والتاريخ والمورد
-await edit('purchase','p1');await fill('gross',14300);await fill('price',29);await fill('date','02/11/2026');await save();
-let e=await edits('purchases','p1');ok('فاتورة خام: القائم والسعر والتاريخ اتعدلوا واتسجلوا قديم ← جديد',e.length===1&&RX.test(e[0])&&e[0].includes('القائم 14,200 ← 14,300')&&e[0].includes('السعر 28 ← 29')&&e[0].includes('التاريخ 01/11/2026 ← 02/11/2026'),e[0]);
+await edit('purchase','p1');await fill('net',9100);await fill('price',29);await fill('date','02/11/2026');await save();
+let e=await edits('purchases','p1');ok('فاتورة خام: الصافي والسعر والتاريخ اتعدلوا واتسجلوا قديم ← جديد',e.length===1&&RX.test(e[0])&&e[0].includes('الصافي 9,000 ← 9,100')&&e[0].includes('السعر 28 ← 29')&&e[0].includes('التاريخ 01/11/2026 ← 02/11/2026'),e[0]);
 await edit('purchase','p12');await selV('supplierId','R4');await save();e=await edits('purchases','p12');ok('فاتورة خام: تغيير المورد',e[0]&&e[0].includes('المورد تجريبي مورد خام — مزرعة النوبارية ← تجريبي مورد خام — البحيرة'),e[0]);
 // 2) نقل
 await edit('transport','t1');await fill('amount',3600);await save();e=await edits('transports','t1');ok('نقل: المبلغ',e[0]&&e[0].includes('المبلغ 3,500 ← 3,600'),e[0]);
@@ -52,7 +52,7 @@ let er;await edit('sale','s7');await fill('lines.1.cartons',1700);er=await trySa
 await edit('run','r4');await fill('cartons',1100);er=await trySave();await close();ok('تعديل تشغيلة لأقل من المباع مرفوض',/أقل من المباع/.test(er),er);
 await edit('payment','y2');await fill('no',3);er=await trySave();await close();ok('تعديل لرقم مكرر مرفوض',/متسجل قبل كده/.test(er),er);
 await edit('supplyIn','si3');await fill('lines.0.qty',-5);er=await trySave();await close();ok('تعديل لكمية بالسالب مرفوض',/بالسالب|الكمية/.test(er),er);
-await edit('purchase','p4');await fill('gross',9000);er=await trySave();await close();ok('تعديل الصافي لأقل من المستخدم في تشغيلة مرفوض',/أقل من المستخدم/.test(er),er);
+await edit('purchase','p4');await fill('net',4000);er=await trySave();await close();ok('تعديل الصافي لأقل من المستخدم في تشغيلة مرفوض',/أقل من المستخدم/.test(er),er);
 ok('الرفض مابيسجلش ملاحظة',!(await edits('sales','s7')).length&&!(await edits('runs','r4')).length);
 // 8) إعادة الحساب: كل الأرقام بعد التعديلات = الحساب المستقل
 const dump=await p.evaluate(()=>{const d={};ERP.COLLS.forEach(c=>d[c]=APP.D[c]);return JSON.stringify({data:d})});fs.writeFileSync(OUT+'/edited.json',dump);

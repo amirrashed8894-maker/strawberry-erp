@@ -53,7 +53,9 @@ for(const [k,o] of [['stmt',{id:'R1'}],['profitDet',{}]]){await p.evaluate(([k,o
 // كل نماذج الإضافة: حفظ فاضي لازم يطلع أخطاء ومايحفظش
 for(const k of ['purchase','transport','payment','supplyIn','transfer','run','sale','party','factory','variety','item']){
   const cnt=await p.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(APP.D).map(([k,v])=>[k,v.length]))));
+  if(k==='sale')await p.evaluate(()=>window.__dlgMode='accept');// بيع تصدير بيسأل عن عدد الحاويات الأول
   await p.evaluate(k=>{const x=document.createElement('button');x.dataset.act='new';x.dataset.k=k;document.body.appendChild(x);x.click();x.remove()},k);await p.waitForTimeout(100);
+  await p.evaluate(()=>window.__dlgMode='dismiss');
   // فضّي كل الخانات
   await p.$$eval('#sheet input[data-p]',L=>L.forEach(i=>{if(!/date|no$/.test(i.dataset.p)){i.value='';i.dispatchEvent(new Event('input',{bubbles:true}))}}));await p.waitForTimeout(60);
   await p.click('#sheet .shb [data-act="fsave"]');await p.waitForTimeout(150);

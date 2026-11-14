@@ -13,9 +13,9 @@ await ctx.route(/supabase\.co/,r=>r.abort());
 const NATIVE=[];const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('dialog',d=>{NATIVE.push(d.type()+': '+d.message());d.dismiss()});
 await p.addInitScript(()=>{window.__nativeCalls=[];['prompt','confirm','alert'].forEach(k=>{const o=window[k];window[k]=function(){window.__nativeCalls.push(k);return o.apply(window,arguments)}})});
 await p.goto(BASE);await p.waitForFunction(()=>window.__ready);ok('مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));
-ok('النسخة 1.2.2',await p.evaluate(()=>APP.VER||document.body.innerText.includes('1.2.2')),await p.evaluate(()=>APP.VER));
+ok('النسخة '+await p.evaluate(()=>APP.VER),/^1\.2\.[2-9]/.test(await p.evaluate(()=>APP.VER)));
 const S='#sheet ';
-const open=async(k,kind)=>{await p.evaluate(([k,kind])=>{const b=document.createElement('button');b.dataset.act='new';b.dataset.k=k;if(kind)b.dataset.kind=kind;document.body.appendChild(b);b.click();b.remove()},[k,kind]);await p.waitForSelector('#sheet:not([hidden])');await p.waitForTimeout(60)};
+const open=async(k,kind)=>{await p.evaluate(([k,kind])=>{const b=document.createElement('button');b.dataset.act='new';b.dataset.k=k;if(kind)b.dataset.kind=kind;document.body.appendChild(b);b.click();b.remove()},[k,kind]);if(k==='sale'&&kind!=='farz'){await p.waitForSelector('#dlg:not([hidden]) input[data-dk="n"]');await p.fill('#dlg input[data-dk="n"]','1');await p.click('#dlg [data-dlg="ok"]')}await p.waitForSelector('#sheet:not([hidden])');await p.waitForTimeout(60)};
 const close=async()=>{if(await p.$eval('#sheet',e=>!e.hidden))await p.click(S+'.shb [data-act="fclose"]');await p.waitForTimeout(40)};
 const dlgOn=()=>p.$eval('#dlg',e=>!e.hidden).catch(()=>false);
 const COLL={raw:'parties',transport:'parties',supply:'parties',export:'parties',farz:'parties',service:'parties',factory:'factories',variety:'varieties',item:'items'};
@@ -54,9 +54,9 @@ ok('إلغاء النافذة بيرجّع القائمة ومايضيفش',r0.s
 const ex=await p.evaluate(()=>APP.D.parties.find(x=>x.type==='raw').name);const r1=await newVia('supplierId',{name:ex});
 ok('اسم موجود بيتختار من غير ما يتكرر',r1.val&&await p.evaluate(nm=>APP.D.parties.filter(x=>x.type==='raw'&&x.name===nm).length,ex)===1,JSON.stringify(r1));
 // فاتورة كاملة بمورد جديد بعد ما البيانات اتكتبت
-await p.fill(S+'input[data-p="gross"]','5200');await p.fill(S+'input[data-p="tare"]','200');await p.fill(S+'input[data-p="price"]','28');
+await p.fill(S+'input[data-p="net"]','5000');await p.fill(S+'input[data-p="price"]','28');
 const r2=await newVia('supplierId',{name:'تجريبي مورد من الآيفون'});
-ok('الأرقام المكتوبة فضلت بعد إضافة مورد جديد',await p.inputValue(S+'input[data-p="gross"]')==='5200'&&await p.inputValue(S+'input[data-p="price"]')==='28',JSON.stringify(r2));
+ok('الأرقام المكتوبة فضلت بعد إضافة مورد جديد',await p.inputValue(S+'input[data-p="net"]')==='5000'&&await p.inputValue(S+'input[data-p="price"]')==='28',JSON.stringify(r2));
 await p.click(S+'.shb [data-act="fsave"]');await p.waitForTimeout(200);
 const pu=await p.evaluate(id=>APP.D.purchases.find(x=>x.supplierId===id),r2.id);ok('الفاتورة اتحفظت على المورد الجديد',!!pu&&!(await p.$eval('#sheet',e=>!e.hidden)),await p.textContent('#ferr').catch(()=>''));
 // حذف: نافذة تأكيد داخلية — لأ مايمسحش، أيوه يمسح

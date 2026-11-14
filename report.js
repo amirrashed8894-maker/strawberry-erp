@@ -82,7 +82,7 @@ function w999(x){const h=Math.floor(x/100),r=x%100,p=[];if(h)p.push(W100[h]);if(
 function wGroup(x,one,two,few,many){if(x===1)return one;if(x===2)return two;if(x>=3&&x<=10)return w999(x)+' '+few;return w999(x)+' '+many}
 function intWords(v){if(v===0)return 'صفر';const G=[[1e9,'مليار','ملياران','مليارات','مليار'],[1e6,'مليون','مليونان','ملايين','مليون'],[1e3,'ألف','ألفان','آلاف','ألف']];const p=[];
   G.forEach(g=>{const q=Math.floor(v/g[0]);if(q){p.push(wGroup(q%1000,g[1],g[2],g[3],g[4]));v-=q*g[0]}});if(v)p.push(w999(v));return p.join(' و')}
-function moneyWords(x){x=Math.round(Math.abs(+x||0)*100);const L=Math.floor(x/100),pi=x%100;return 'فقط '+(L||!pi?intWords(L)+' جنيه مصري'+(pi?' و':''):'')+(pi?intWords(pi)+' قرش':'')+' لا غير'}
+function moneyWords(x,cur){x=Math.round(Math.abs(+x||0)*100);const L=Math.floor(x/100),pi=x%100;const u=cur==='USD'?[' دولار أمريكي',' سنت']:[' جنيه مصري',' قرش'];return 'فقط '+(L||!pi?intWords(L)+u[0]+(pi?' و':''):'')+(pi?intWords(pi)+u[1]:'')+' لا غير'}
 const KIND={purchase:'فاتورة خام',transport:'نقل',supplyIn:'فاتورة مستلزمات',runCost:'تكلفة تشغيل',sale:'فاتورة بيع',saleExp:'مصروف بيع',payment:'دفعة',open:'رصيد افتتاحي'};
 const isCust=t=>t==='export'||t==='farz';
 /* ملاحظة التعديل الخفيفة — للتقارير الداخلية وكشوف الموردين بس، أبدًا في أي حاجة للعميل */
@@ -99,11 +99,32 @@ BUILD.stmt=function(o){const app=A(),p=app.get('parties',o.id);if(!p)return null
   b.push(H(boxes([['الرصيد الختامي'+(o.to?' في '+E.dmy(o.to):''),f2(Math.abs(close))+' ج',Math.abs(close)<0.005?'متسدد':(close>0?'عليه — '+(cust?'مستحق لنا على العميل':'مستحق لنا عند المورد'):'له — '+(cust?'مستحق للعميل علينا':'مستحق للمورد علينا')),1],['رصيد أول المدة',amt(open)],['مدين خلال الفترة',f2(dr)],['دائن خلال الفترة',f2(cr)]])));
   const R=[];let bal=open,i=0;
   R.push(tr([td(''),td(o.from?E.dmy(o.from):'','v'),td('رصيد افتتاحي'),td(''),td(o.from?'رصيد منقول قبل '+E.dmy(o.from):'رصيد أول المدة'),td(open>0?f2(open):'','v'),td(open<0?f2(-open):'','v'),td(amt(open),'v')],'g'));
-  rows.forEach(e=>{bal+=e.dr-e.cr;i++;R.push(tr([td(i,'v c'),td(E.dmy(e.date),'v'),td(esc(e.doc||KIND[e.kind]||'')),td(esc(e.no==null?'':e.no),'v c'),td(esc(e.info||e.desc)+(cust?'':(L=>L.length?'<div class="enote">'+L.map(esc).join('<br>')+'</div>':'')(app.stmtNotes(e,2)))),td(e.dr?f2(e.dr):'','v'),td(e.cr?f2(e.cr):'','v'),td(amt(bal),'v')]))});
+  rows.forEach(e=>{bal+=e.dr-e.cr;i++;R.push(tr([td(i,'v c'),td(E.dmy(e.date),'v'),td(esc(e.doc||KIND[e.kind]||'')),td(esc(e.no==null?'':e.no),'v c'),td(esc(e.info||e.desc)+(cust?'':(L=>L.length?'<div class="enote">'+L.map(esc).join('<br>')+'</div>':'')(app.stmtNotes(e,2)))),td(e.dr?f2(e.dr):'','v'),td(e.cr?f2(e.cr):'','v'),td(amt(bal),'v')]));(e.subs||[]).forEach(z=>R.push(tr([td(''),tdc(esc(z.i+'. '+z.txt),4,'d'),td(''),td(''),td('')],'sub')))});
   b.push(T('الحركات',th(['م','التاريخ','المستند','رقم','البيان','مدين','دائن','الرصيد']),R,tr([td(''),td(''),td('الإجمالي'),td(''),td(rows.length+' حركة + رصيد أول المدة'),td(f2(dr+(open>0?open:0)),'v'),td(f2(cr+(open<0?-open:0)),'v'),td(amt(close),'v b')],'tt'),'sm st'));
   b.push(H(bd('<div class="rwords"><b>الرصيد الختامي بالحروف:</b> '+(Math.abs(close)<0.005?'صفر — الحساب متسدد':moneyWords(close)+' — '+(close>0?(cust?'مستحق لشركة الراشد للتجارة على العميل':'مستحق لشركة الراشد للتجارة عند المورد'):(cust?'مستحق للعميل على شركة الراشد للتجارة':'مستحق للمورد على شركة الراشد للتجارة')))+'</div>')));
   b.push(H(note('مدين = عليه (مستحق لشركة الراشد)، دائن = له (مستحق على شركة الراشد). المبالغ بالجنيه المصري؛ الحركات بالدولار متحولة بالسعر المسجل في كل حركة. التواريخ يوم/شهر/سنة.')));
   return{title:'كشف حساب '+(cust?'عميل':'مورد')+' — '+esc(p.name),meta:per(o.from,o.to),blocks:b,file:'statement-'+(cust?'customer':'supplier')}};
+
+/* ===== فاتورة البيع (للعميل) — من غير أي إشارة لتعديل، ولا تكلفة ولا تشغيلات ===== */
+BUILD.inv=function(o){const app=A(),s=app.get('sales',o.id);if(!s)return null;const x=app.C.SL[s.id];if(!x)return null;const p=app.get('parties',s.customerId)||{};const b=[];
+  const usd=x.cur==='USD',$=usd?'$':'',u=usd?'':' ج',money=v=>$+f2(v)+u,pr=v=>$+E.pfmt(v)+u;const inv=x.invNo||('#'+s.no);
+  b.push(H(infoGrid([['رقم الفاتورة','<b>'+esc(inv)+'</b>'],['التاريخ',E.dmy(s.date)],['العميل','<b>'+esc(p.name||'—')+'</b>'],p.nameEn?['Customer',esc(p.nameEn)]:null,p.address?['العنوان',esc(p.address)]:null,p.cr?['سجل تجاري',esc(p.cr)]:null,p.tax?['بطاقة ضريبية',esc(p.tax)]:null,
+    ['العملة',usd?'دولار أمريكي (USD)':'جنيه مصري'],x.cont?['عدد الحاويات',String(x.nCont)]:null,['إجمالي الكمية',x.kind==='export'?f3(x.tons)+' طن ('+f0(x.kg)+' كجم)':f0(x.kg)+' كجم']])));
+  b.push(H(boxes([['إجمالي الفاتورة',money(x.amount),usd&&x.rate?'المعادل بالجنيه '+f2(x.rev)+' ج — سعر الدولار '+f2(x.rate):'',1],x.cont?['عدد الحاويات',String(x.nCont)]:['عدد السطور',String(x.lines.length)],['إجمالي الكمية',x.kind==='export'?f3(x.tons)+' طن':f0(x.kg)+' كجم'],['التاريخ',E.dmy(s.date)]])));
+  let head,rows,foot;
+  if(x.cont){head=th(['م','رقم الحاوية','رقم البوليصة','الكمية (طن)','الكمية (كجم)','سعر الكيلو','القيمة']);
+    rows=x.lines.map((l,i)=>tr([td(i+1,'v c'),td(esc(l.cont||'—'),'c'),td(esc(l.bl||'—'),'c'),td(f3(l.tons),'v'),td(f0(l.kg),'v'),td(pr(l.price),'v'),td(money(l.amount),'v')]));
+    foot=tr([td(''),td('الإجمالي — '+E.contN(x.nCont)),td(''),td(f3(x.tons),'v b'),td(f0(x.kg),'v'),td(''),td(money(x.amount),'v b')],'tt')}
+  else if(x.kind==='export'){head=th(['م','البيان','كراتين','الكمية (كجم)','سعر الطن','القيمة']);
+    rows=x.lines.map((l,i)=>tr([td(i+1,'v c'),td('إنتاج فراولة مجمدة'),td(f0(l.cartons),'v'),td(f0(l.kg),'v'),td(money(l.price),'v'),td(money(l.amount),'v')]));
+    foot=tr([td(''),td('الإجمالي'),td(f0(x.lines.reduce((a,l)=>a+l.cartons,0)),'v'),td(f0(x.kg),'v b'),td(''),td(money(x.amount),'v b')],'tt')}
+  else{head=th(['م','البيان','الكمية (كجم)','سعر الكيلو','القيمة']);
+    rows=x.lines.map((l,i)=>tr([td(i+1,'v c'),td('فرزة فراولة'),td(f0(l.kg),'v'),td(pr(l.price),'v'),td(money(l.amount),'v')]));
+    foot=tr([td(''),td('الإجمالي'),td(f0(x.kg),'v b'),td(''),td(money(x.amount),'v b')],'tt')}
+  b.push(T(x.cont?'الحاويات':'البيان',head,rows,foot,'sm inv'));
+  b.push(H(bd('<div class="rwords"><b>إجمالي الفاتورة بالحروف:</b> '+moneyWords(x.amount,x.cur)+'</div>')));
+  b.push(H(note((x.cont?'الكمية بالطن (1 طن = 1000 كجم) والسعر للكيلو؛ القيمة = الطن × 1000 × سعر الكيلو. ':'')+'التواريخ يوم/شهر/سنة.')));
+  return{title:(x.kind==='farz'?'فاتورة بيع فرزة':'فاتورة بيع تصدير')+' — '+esc(inv),meta:esc(p.name||'')+' · '+E.dmy(s.date),blocks:b,file:'invoice-'+String(inv).replace(/[^A-Za-z0-9_-]/g,'')}};
 
 /* ===== الربحية ===== */
 function profitData(o){const app=A(),D=app.D,C=app.C;const inP=s=>(!o.from||s.date>=o.from)&&(!o.to||s.date<=o.to);
@@ -133,9 +154,9 @@ BUILD.profit=BUILD.profitSum;
 BUILD.profitDet=function(o){const {app,C,sales,L,tot,prov}=profitData(o);const b=[];const w=provWarn(prov);if(w)b.push(w);
   b.push(H(boxes([['صافي الربح',f0(tot.profit)+' ج',tot.rev?'هامش '+f1(tot.profit/tot.rev*100)+'%':'',1],['المبيعات',f0(tot.rev)+' ج',sales.length+' عملية'],['التكلفة المخصصة',f0(tot.cogs)+' ج'],['مصروفات البيع',f0(tot.exp)+' ج']])));
   const R=[];sales.forEach(s=>{const x=C.SL[s.id],cu=app.get('parties',s.customerId)||{};const zs=L.filter(z=>z.s.id===s.id);const any=zs.some(z=>z.prov);
-    R.push('<tr class="g">'+tdc('<b>بيع #'+esc(s.no)+' — '+E.dmy(s.date)+'</b> · '+esc(cu.name||'—')+' · '+(x.kind==='farz'?'فرزة (السعر للكيلو)':'تصدير (السعر للطن)')+(s.invNo?' · فاتورة '+esc(s.invNo):'')+(x.cur==='USD'?' · بالدولار: $'+f2(x.amount)+' × سعر '+f2(x.rate):' · بالجنيه')+enote(s,2),9)+'</tr>');
+    R.push('<tr class="g">'+tdc('<b>بيع #'+esc(s.no)+' — '+E.dmy(s.date)+'</b> · '+esc(cu.name||'—')+' · '+(x.kind==='farz'?'فرزة (السعر للكيلو)':x.cont?'تصدير — '+E.contN(x.nCont)+' · '+f3(x.tons)+' طن (السعر للكيلو)':'تصدير (السعر للطن)')+(s.invNo?' · فاتورة '+esc(s.invNo):'')+(x.cur==='USD'?' · بالدولار: $'+f2(x.amount)+' × سعر '+f2(x.rate):' · بالجنيه')+enote(s,2),9)+'</tr>');
     zs.forEach(z=>{const l=z.l,run=z.run;const q=f0(l.kg);
-      R.push(tr([td('تشغيلة #'+esc(run.no||'?')+' '+E.dmy(run.date)+' · '+esc(app.name('factories',run.factoryId))+(x.kind==='farz'?'':' · '+f0(l.cartons)+' كرتونة')+(z.prov?' <span class="flag">مبدئي</span>':'')),td(q,'v'),td((x.cur==='USD'?'$':'')+f2(l.price),'v'),td(f0(l.egp),'v'),td(f0(l.kgCost*1000),'v'),td(f0(l.cogs),'v'),td(f0(z.exp),'v'),td(f0(z.profit),'v b'),td(l.egp?f1(z.profit/l.egp*100)+'%':'-','v')]))});
+      R.push(tr([td((x.cont?'حاوية '+esc(l.cont||'—')+(l.bl?' · بوليصة '+esc(l.bl):'')+' · '+f3(l.tons)+' طن · ':'')+'تشغيلة #'+esc(run.no||'?')+' '+E.dmy(run.date)+' · '+esc(app.name('factories',run.factoryId))+(x.kind==='farz'||x.cont?'':' · '+f0(l.cartons)+' كرتونة')+(z.prov?' <span class="flag">مبدئي</span>':'')),td(q,'v'),td((x.cur==='USD'?'$':'')+(x.cont?E.pfmt(l.price)+'/كجم':f2(l.price)),'v'),td(f0(l.egp),'v'),td(f0(l.kgCost*1000),'v'),td(f0(l.cogs),'v'),td(f0(z.exp),'v'),td(f0(z.profit),'v b'),td(l.egp?f1(z.profit/l.egp*100)+'%':'-','v')]))});
     R.push(tr([td('إجمالي البيع #'+esc(s.no)+(any?' <span class="flag">مبدئي</span>':'')),td(f0(x.kg),'v'),td(''),td(f0(x.rev),'v'),td(x.kg?f0(x.cogs/x.kg*1000):'-','v'),td(f0(x.cogs),'v'),td(f0(x.exp),'v'),td(f0(x.profit),'v b'),td(f1(x.margin)+'%','v')],'st2'))});
   b.push(T('الربحية لكل فاتورة بيع وتخصيصها على التشغيلات',th(['البيع / التشغيلة','الكمية كجم','سعر البيع','الإيراد ج','تكلفة الطن ج','التكلفة المخصصة ج','مصروفات البيع ج','الربح ج','%']),R,tr([td('الإجمالي — '+sales.length+' عملية'),td(f0(tot.kg),'v'),td(''),td(f0(tot.rev),'v'),td(tot.kg?f0(tot.cogs/tot.kg*1000):'-','v'),td(f0(tot.cogs),'v'),td(f0(tot.exp),'v'),td(f0(tot.profit),'v b'),td(tot.rev?f1(tot.profit/tot.rev*100)+'%':'-','v')],'tt'),'xs pd'));
   const byR={};L.forEach(z=>{const r=byR[z.l.runId]=byR[z.l.runId]||{rev:0,cogs:0,exp:0,fin:0,farz:0};r.rev+=z.l.egp;r.cogs+=z.l.cogs;r.exp+=z.exp;r[z.x.kind==='farz'?'farz':'fin']+=z.l.kg});
@@ -179,7 +200,7 @@ async function open(kind,o){const doc=BUILD[kind]&&BUILD[kind](o||{});if(!doc){(
   $('#pages').innerHTML=pages.map(h=>'<div class="pw">'+h+'</div>').join('');$('#rep').hidden=false;document.body.classList.add('modal');fit();$('#rep').scrollTop=0;window.__repReady=pages.length}
 function fit(){const w=Math.min(window.innerWidth-16,794),s=w/794;document.querySelectorAll('#pages .pw').forEach(p=>{p.style.width=w+'px';p.style.height=(1123*s)+'px';p.firstElementChild.style.transform='scale('+s+')'})}
 window.addEventListener('resize',()=>{if(!$('#rep').hidden)fit()});
-function close(){$('#rep').hidden=true;$('#pages').innerHTML='';document.body.classList.remove('modal')}
+function close(){$('#rep').hidden=true;$('#pages').innerHTML='';if($('#sheet').hidden)document.body.classList.remove('modal')}
 async function makePdf(){const holder=document.createElement('div');holder.className='rhold';holder.innerHTML=CUR.pages.join('');document.body.appendChild(holder);
   const imgs=[...holder.querySelectorAll('img')];await Promise.all(imgs.map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r})));
   const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',compress:true});const ps=holder.querySelectorAll('.rp');
