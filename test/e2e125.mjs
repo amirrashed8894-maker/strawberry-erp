@@ -13,7 +13,7 @@ await ctx.route(/supabase\.co/,r=>r.abort());
 const NATIVE=[];const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('dialog',d=>{NATIVE.push(d.type()+': '+d.message());d.dismiss()});
 await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
 await p.goto(BASE);await p.waitForFunction(()=>window.__ready);ok('مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));ok('النسخة 1.2.4+',await p.evaluate(()=>APP.VER)>='1.2.4');
-await p.goto(BASE);await p.waitForFunction(()=>window.__ready);ok('مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));ok('النسخة 1.2.5',await p.evaluate(()=>APP.VER)==='1.2.5');
+await p.goto(BASE);await p.waitForFunction(()=>window.__ready);ok('مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));ok('النسخة 1.2.5+',await p.evaluate(()=>APP.VER)>='1.2.5');
 // 0) نسخة فيها تشغيلة اتعملت بـ 1.2.4 (صرف تلقائي فيه باليت/داتا لوجر/عمولات) + فاتورة حاويات قديمة من غير تحميل
 const J=JSON.parse(fs.readFileSync('/workspace/strawberry_erp/test/scenario100.json','utf8'));const r4=J.data.runs.find(r=>r.id==='r4');r4.autoSup=true;
 r4.supplies=(r4.supplies||[]).concat([{itemId:'itm2',qty:13.4,locId:'fac4',auto:true,bk:'pal'},{itemId:'itm9',qty:1,locId:'fac4',auto:true,bk:'dl',ovr:true}]);

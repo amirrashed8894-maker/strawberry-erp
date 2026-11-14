@@ -80,4 +80,24 @@ assert.equal(E.parseDmy('٠٥/١١/٢٠٢٦'),'2026-11-05');assert.equal(E.parse
  assert.equal(C1.SUP.itm2.loc.fac1,C0.SUP.itm2.loc.fac1-13,'pallets from loading warehouse');assert.ok(C1.warns.some(w=>w.type==='load'&&w.sale==='cl'&&w.item==='itm2'),'pallet shortage at loading');
  assert.ok(C1.L.SV1.some(e=>e.kind==='loadSvc'&&e.cr===20000),'commission posted to service account');assert.ok(!C1.L['cus-fussga'].some(e=>e.kind==='loadSvc'),'nothing internal on customer');
  assert.equal(C1.L['cus-fussga'].find(e=>e.ref==='cl').dr,x.rev,'customer debit = revenue only')}
+/* v1.2.6: سعر الزوايا 20 ج والداتا لوجر 240 ج — ترحيل للمكونات المحفوظة، والتكلفة بسعر المكونات لو مفيش شراء مخزن */
+{const b=E.bomOf();const cor=b.lines.find(l=>l.k==='cor'),dl=b.lines.find(l=>l.k==='dl');
+ assert.equal(cor.price,20);assert.equal(cor.qty,4);assert.equal(dl.price,240);assert.equal(dl.qty,1);
+ const none=E.patchBom126({id:'main'});assert.equal(none.changed,false);assert.equal(none.cor,'none');
+ const empty=E.patchBom126({id:'main',bom:{perPal:120,perCont:2400,lines:[{k:'cor',itemId:'itm7',base:'pal',qty:4},{k:'dl',itemId:'itm9',base:'cont',qty:1}]}});
+ assert.equal(empty.changed,true);assert.equal(empty.cor,'set');assert.equal(empty.dl,'set');assert.equal(empty.s.bom.lines[0].price,20);assert.equal(empty.s.bom.lines[1].price,240);assert.ok(empty.note.indexOf('ترحيل 1.2.6')===0);
+ const z=E.patchBom126({id:'main',bom:{lines:[{k:'cor',itemId:'itm7',qty:4,price:0},{k:'dl',itemId:'itm9',qty:1,price:''}]}});assert.equal(z.changed,true);assert.equal(z.s.bom.lines[0].price,20);assert.equal(z.s.bom.lines[1].price,240);
+ const keep=E.patchBom126({id:'main',bom:{lines:[{k:'cor',itemId:'itm7',qty:4,price:15},{k:'dl',itemId:'itm9',qty:1,price:300}]}});assert.equal(keep.changed,false);assert.equal(keep.cor,'keep');assert.equal(keep.dl,'keep');assert.deepEqual(keep.kept,{cor:15,dl:300});assert.equal(keep.s.bom.lines[0].price,15);
+ const mixed=E.patchBom126({id:'main',bom:{lines:[{k:'cor',itemId:'itm7',qty:4,price:15},{k:'dl',itemId:'itm9',qty:1}]}});assert.equal(mixed.changed,true);assert.equal(mixed.cor,'keep');assert.equal(mixed.dl,'set');assert.equal(mixed.s.bom.lines[0].price,15);assert.equal(mixed.s.bom.lines[1].price,240);assert.equal(mixed.kept.cor,15);
+ const same=E.patchBom126({id:'main',bom:{lines:[{k:'cor',itemId:'itm7',qty:4,price:20},{k:'dl',itemId:'itm9',qty:1,price:240}]}});assert.equal(same.changed,false);assert.equal(same.cor,'same');assert.equal(same.dl,'same');
+ const d=E.seed();d.runs.push({id:'r1',no:1,date:'2026-11-14',factoryId:'fac1',varietyId:'var1',cartonKg:10,cartons:2400,inputs:[],supplies:[],costs:[],createdAt:'2026-11-14T00:00:00.000Z'});
+ const ld={locId:'fac1',sup:[{k:'cor',itemId:'itm7',qty:80,auto:true},{k:'dl',itemId:'itm9',qty:1,auto:true},{k:'stL',itemId:'itm11',qty:1500,auto:true}],svc:[]};
+ d.sales.push({id:'s1',no:1,date:'2026-11-14',kind:'export',cont:true,autoLoad:true,invNo:'FR27001',customerId:'cus-fussga',cur:'USD',rate:50,lines:[{runId:'r1',cont:'C1',bl:'B',tons:24,price:1.2,ld}],expenses:[]});
+ const C0=E.compute(d);assert.equal(C0.SUP.itm7.ref,20);assert.equal(C0.SUP.itm9.ref,240);assert.equal(C0.SUP.itm11.ref,0.3);
+ const I0=C0.loadIss.s1[0];const by=id=>I0.find(z=>z&&z.itemId===id);
+ near(by('itm7').cost,1600,'corners 80×20 with no warehouse cost');near(by('itm9').cost,240,'logger 1×240 with no warehouse cost');near(by('itm11').cost,450,'large sticker 1500×0.30');
+ near(C0.SL.s1.loadSup,1600+240+450,'priced loading supplies');near(C0.SL.s1.loadSvc,0);
+ const d1=JSON.parse(JSON.stringify(d));d1.supplyIn.push({id:'in1',date:'2026-11-01',locId:'fac1',supplierId:'',lines:[{itemId:'itm9',qty:10,price:150}],createdAt:'2026-11-01T00:00:00.000Z'});
+ const C1=E.compute(d1),i9=C1.loadIss.s1[0].find(z=>z&&z.itemId==='itm9'),i7=C1.loadIss.s1[0].find(z=>z&&z.itemId==='itm7');
+ near(i9.avg,150,'logger uses warehouse average when a purchase exists');near(i9.cost,150);near(i7.cost,1600,'corners still at BOM price — no purchase')}
 console.log('calc tests OK');

@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const VER='1.2.5',E=ERP,n=E.n,fm=E.fmt;
+const VER='1.2.6',E=ERP,n=E.n,fm=E.fmt;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const f0=x=>fm(x,0),f2=x=>fm(x,2),f1=x=>fm(x,1);
@@ -209,7 +209,7 @@ VIEWS.settings=function(){const s=S();return '<div class="vh"><button class="btn
   '<section class="card"><h2>معاملة الفرزة في التكلفة</h2>'+
   '<label class="radio"><input type="radio" name="fm" data-set="farzMethod" value="credit"'+(s.farzMethod!=='joint'?' checked':'')+'><div><b>(أ) خصم قيمة الفرزة من تكلفة التشغيلة — الافتراضي</b><div class="mut sm">الفرزة منتج ثانوي: كل التكلفة على الإنتاج النهائي، وبنخصم منها صافي البيع الفعلي للفرزة لعملاء الفرزة. الفرزة اللي لسه ما اتباعتش مالهاش سعر — التكلفة بتفضل «مبدئية» لحد ما تتباع، أو تحط لها سعر مؤقت في التشغيلة. سعر الفرزة في التقدير (15 ج) للتقدير بس.</div></div></label>'+
   '<label class="radio"><input type="radio" name="fm" data-set="farzMethod" value="joint"'+(s.farzMethod==='joint'?' checked':'')+'><div><b>(ب) توزيع التكلفة على النهائي والفرزة بالوزن</b><div class="mut sm">كيلو الفرزة وكيلو النهائي بنفس التكلفة، والهالك محمّل على الاتنين.</div></div></label></section>'+
-  '<section class="card"><h2>مكونات التعبئة (BOM) — الصرف التلقائي</h2><div class="mut sm">المصدر: '+esc(BOM().src||'')+'</div><label class="chk"><input type="checkbox" data-sflag="bomOn"'+(bomOn()?' checked':'')+'> صرف المستلزمات وخدمات الحاوية تلقائي في التشغيلات الجديدة</label>'+bomTable(BOM())+'<button class="btn wide" data-act="bomEdit">تعديل مكونات التعبئة</button></section>'+
+  '<section class="card"><h2>مكونات التعبئة (BOM) — الصرف التلقائي</h2><div class="mut sm">المصدر: '+esc(BOM().src||'')+'</div><label class="chk"><input type="checkbox" data-sflag="bomOn"'+(bomOn()?' checked':'')+'> صرف المستلزمات وخدمات الحاوية تلقائي في التشغيلات الجديدة</label>'+bomTable(BOM())+(s.edits&&s.edits.length?enote(s,2):'')+'<button class="btn wide" data-act="bomEdit">تعديل مكونات التعبئة</button></section>'+
   '<section class="card"><h2>القيم الافتراضية</h2><div class="grid">'+
   ['cartonKg|وزن الكرتونة الصافي|كجم','sackKg|وزن الشيكارة|كجم','usdRate|سعر الدولار الافتراضي|ج'].map(x=>{const a=x.split('|');return '<div class="f"><label>'+a[1]+'</label><div class="in"><input inputmode="decimal" data-sset="'+a[0]+'" value="'+esc(s[a[0]])+'"><span class="u">'+a[2]+'</span></div></div>'}).join('')+'</div></section>'+
   '<div class="foot">الإصدار '+VER+' · '+(window.SYNC&&SYNC.state.enabled?'البيانات على الجهاز ومتزامنة مع السحابة':'البيانات على الجهاز ده بس (مش مربوط بالسحابة)')+'</div>'};
@@ -593,7 +593,7 @@ async function doRestore(file){let j;try{j=JSON.parse(await file.text())}catch(e
   const list=[];E.COLLS.forEach(c=>(Array.isArray(j.data[c])?j.data[c]:[]).forEach(v=>list.push([c,Object.assign({},v,{updatedAt:t})])));
   if(!list.some(x=>x[0]==='settings'))list.push(['settings',Object.assign(E.seed().settings[0],{updatedAt:t})]);
   await Store.putMany(list);await reloadFromStore();if(window.SYNC)SYNC.kick(200);toast('اتسترجعت النسخة')}
-async function reloadFromStore(){ARC=null;D=await Store.loadAll(E.COLLS);if(!D.settings.length){const sd=E.seed();D.settings=sd.settings}recompute();await migrate125();if(F){F.staleRender=true;return}render()}
+async function reloadFromStore(){ARC=null;D=await Store.loadAll(E.COLLS);if(!D.settings.length){const sd=E.seed();D.settings=sd.settings}recompute();await migrate125();await migrate126();if(F){F.staleRender=true;return}render()}
 
 /* ===== الأحداث ===== */
 document.addEventListener('click',async e=>{const t=e.target.closest('[data-go],[data-act],[data-fset],[data-ladd],[data-ldel]');if(!t)return;
@@ -654,10 +654,13 @@ let MIG125=false;async function migrate125(){if(MIG125)return 0;MIG125=true;let 
     const x=JSON.parse(JSON.stringify(r));const fix=(arr,K)=>(arr||[]).filter(l=>!(l.auto&&K.has(l.bk)&&!l.ovr)).map(l=>{if(l.auto&&K.has(l.bk)){delete l.auto;delete l.ovr;delete l.bk}return l});
     x.supplies=fix(x.supplies,LK);x.costs=fix(x.costs,SK);await upsert('runs',x,true,'ترحيل 1.2.5: مستلزمات وخدمات الحاوية اتنقلت للتحميل في فاتورة البيع');k++}}finally{MIG125=false}
   if(k){recompute();if(!F)render()}return k}
+/* v1.2.6: أسعار الزوايا 20 ج والداتا لوجر 240 ج في المكونات المحفوظة لو فاضي/صفر، مع ملاحظة خفيفة. السعر اللي المستخدم كتبه لو مختلف ما بيتلمسش. */
+let MIG126=false;async function migrate126(){if(MIG126)return 0;MIG126=true;let k=0;try{const r=E.patchBom126(S());if(r.changed){const x=r.s,t=new Date().toISOString();x.edits=(x.edits||[]).slice();x.edits.push({at:t,ch:[r.note],txt:r.note});await upsert('settings',x,true);k=1}}finally{MIG126=false}
+  if(k){recompute();if(!F)render()}return k}
 /* ===== البداية ===== */
 async function start(){await Store.init();let d=await Store.loadAll(E.COLLS);
   if(!d.settings.length){d=E.seed();const list=[];E.COLLS.forEach(c=>d[c].forEach(v=>list.push([c,v])));await Store.putMany(list,{noOut:true})}
-  D=d;recompute();await migrate125();render();document.body.classList.add('ready');window.__ready=true;
+  D=d;recompute();await migrate125();await migrate126();render();document.body.classList.add('ready');window.__ready=true;
   if(window.SYNC&&!start.done){start.done=1;SYNC.on(()=>{syncPill();if(route().v==='cloud'&&!F&&!(document.activeElement&&document.activeElement.id==='joinCode'))render()});await SYNC.init(window.APP)}}
 window.APP={get F(){return F},editNotes,refRec,stmtNotes,reloadFromStore,get D(){return D},get C(){return C},S,get,name,statement,partyLabel,runLabel,balTxt,VER,esc,f0,f2,f1,f3,N,reload:start,upsert};
 start();
