@@ -1,7 +1,7 @@
 // اختبار شامل من الواجهة ببيانات تجريبية (كل الأسماء «تجريبي») — Chrome headless بمقاس موبايل
 import { chromium, webkit, devices } from '/usr/local/lib/pnpm/5/.pnpm/playwright@1.63.0-alpha-2026-08-31/node_modules/playwright/index.mjs';
 import fs from 'fs';
-const BASE=process.env.BASE||(process.env.ENGINE==='webkit'?'http://erp.test/':'http://127.0.0.1:8811/');const OUT='/workspace/strawberry_erp/test/out'+(process.env.ENGINE==='webkit'?'_webkit':'');fs.mkdirSync(OUT,{recursive:true});
+const BASE=process.env.BASE||(process.env.ENGINE==='webkit'?'http://erp.test/':'http://127.0.0.1:8811/');const OUT='/workspace/strawberry_erp/test/out'+(process.env.BASE?'_live':'')+(process.env.ENGINE==='webkit'?'_webkit':'');fs.mkdirSync(OUT,{recursive:true});
 const res=[];const ok=(n,c,i='')=>{res.push({n,pass:!!c,i});console.log((c?'PASS ':'FAIL ')+n+(i?' — '+i:''))};
 const WK=process.env.ENGINE==='webkit';const b=WK?await webkit.launch():await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
 const ctx=await b.newContext(WK?{...devices['iPhone 13'],locale:'ar-EG',timezoneId:'Africa/Cairo',acceptDownloads:true}:{viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true,locale:'ar-EG',timezoneId:'Africa/Cairo',acceptDownloads:true});
