@@ -56,9 +56,9 @@ await add('costs');await fill('costs.2.name','تخزين مبرد');await fill('
 // محاولة تخطي الخام المتاح
 await fill('inputs.1.kg',8001);await p.click(S+'.shb [data-act="fsave"]');await p.waitForTimeout(150);ok('منع استخدام خام أكتر من الفاتورة',(await p.textContent('#ferr')).includes('المتاح'));
 await fill('inputs.1.kg',8000);
-await p.screenshot({path:OUT+'/run_form.png',fullPage:false});
+await p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await p.waitForTimeout(250);await p.screenshot({path:OUT+'/run_form.png',fullPage:false});
 await save();await p.waitForTimeout(200);
-await p.screenshot({path:OUT+'/run_view.png',fullPage:true});
+await p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await p.waitForTimeout(250);await p.screenshot({path:OUT+'/run_view.png',fullPage:true});
 // 6) المبيعات
 await newK('sale',JSON.stringify({kind:'export'}));await fill('date','12/11/2026');
 ok('فوسجا مختارة تلقائي',(await p.$eval(S+'select[data-p="customerId"]',s=>s.options[s.selectedIndex].text)).includes('فوسجا'));
@@ -88,15 +88,15 @@ ok('مخزون باقي 5,000 نهائي و500 فرزة',near(R.stockFin,5000)&&
 // 8b) تحذير الفرزة
 await go('#/run/'+(await p.evaluate(()=>APP.D.runs[0].id)));await p.waitForTimeout(300);
 const wtxt=await p.textContent('#main');ok('تحذير «سعر الفرزة لسه ما اتحددش» في شاشة التشغيلة',wtxt.includes('سعر الفرزة لسه ما اتحددش — التكلفة مبدئية')&&wtxt.includes('قبل خصم الفرزة غير المباعة (500 كجم)'));
-await p.evaluate(()=>document.querySelector('#toast').classList.remove('on'));await p.screenshot({path:OUT+'/run_farz_warning.png'});
+await p.evaluate(()=>document.querySelector('#toast').classList.remove('on'));await p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await p.waitForTimeout(250);await p.screenshot({path:OUT+'/run_farz_warning.png'});
 await go('#/home');ok('التحذير في الرئيسية',(await p.textContent('#main')).includes('سعر الفرزة لسه ما اتحددش'));
 await go('#/run/'+(await p.evaluate(()=>APP.D.runs[0].id)));promptAns='15';await p.click('[data-act="farzTemp"]');await p.waitForTimeout(400);promptAns=null;
 let T2=await p.evaluate(()=>{const r=APP.C.R[APP.D.runs[0].id];return{st:r.status,perTon:r.perTon,label:r.costLabel}});ok('سعر مؤقت 15 → مبدئي 37,117.33',T2.st==='provisional'&&near(T2.perTon,37117.3333)&&T2.label.includes('مؤقت 15.00'),JSON.stringify(T2));
-await p.screenshot({path:OUT+'/run_farz_provisional.png'});
+await p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await p.waitForTimeout(250);await p.screenshot({path:OUT+'/run_farz_provisional.png'});
 // 9) العرض والتقارير
-await go('#/home');await p.waitForTimeout(200);await p.screenshot({path:OUT+'/home.png'});
-await go('#/acc');await p.screenshot({path:OUT+'/acc.png',fullPage:true});
-const fid=await p.evaluate(()=>APP.D.parties.find(x=>x.id==='cus-fussga').id);await go('#/party/'+fid);await p.screenshot({path:OUT+'/stmt_fussga.png',fullPage:true});
+await go('#/home');await p.waitForTimeout(200);await p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await p.waitForTimeout(250);await p.screenshot({path:OUT+'/home.png'});
+await go('#/acc');await p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await p.waitForTimeout(250);await p.screenshot({path:OUT+'/acc.png',fullPage:true});
+const fid=await p.evaluate(()=>APP.D.parties.find(x=>x.id==='cus-fussga').id);await go('#/party/'+fid);await p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await p.waitForTimeout(250);await p.screenshot({path:OUT+'/stmt_fussga.png',fullPage:true});
 const rid=await p.evaluate(()=>APP.D.runs[0].id);
 const shotRep=async(kind,opt,name)=>{await p.evaluate(([k,o])=>RPT.open(k,o),[kind,opt]);await p.waitForFunction(()=>window.__repReady);const n=await p.evaluate(()=>window.__repReady);
   // صور الصفحات بالحجم الكامل

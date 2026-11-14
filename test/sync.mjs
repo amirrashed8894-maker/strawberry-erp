@@ -27,7 +27,7 @@ await B.p.evaluate(id=>{const x=document.createElement('button');x.dataset.act='
 await B.p.fill(S+'input[data-p="phone"]','01000000000').catch(()=>{});await B.p.fill(S+'input[data-p="name"]',tag+' أ معدل');await B.p.click(S+'.shb [data-act="fsave"]');await B.p.waitForTimeout(2500);
 const stB=await B.p.evaluate(()=>({pending:SYNC.state.pending,pill:document.querySelector('#sync').textContent,online:SYNC.state.online}));
 ok('أوفلاين: التعديلات محفوظة على الجهاز ومستنية رفع',stB.pending>=2&&/أوفلاين/.test(stB.pill),JSON.stringify(stB));
-await B.p.evaluate(()=>location.hash='#/cloud');await B.p.waitForTimeout(200);await B.p.screenshot({path:OUT+'/sync_offline.png'});
+await B.p.evaluate(()=>location.hash='#/cloud');await B.p.waitForTimeout(200);await B.p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await B.p.waitForTimeout(250);await B.p.screenshot({path:OUT+'/sync_offline.png'});
 await A.p.evaluate(()=>SYNC.run());await A.p.waitForTimeout(1500);
 ok('قبل ما B يرجع أونلاين A لسه مايعرفش التعديل',!(await pid(A.p,tag+' ب')));
 // 3) B أونلاين → يرفع، A يشوف
@@ -42,7 +42,7 @@ ok('الحذف على A اتنقل لـ B',!(await pid(B.p,tag+' ب')));
 ok('المحذوف متأرشف على الجهاز (مش ممسوح)',await B.p.evaluate(async id=>{const t=await Store.tombs();return t.some(x=>x.v&&x.v.id===id||x.id===id)},idB).catch(e=>'err '+e));
 fs.writeFileSync(OUT+'/deleted_id.txt',idB);
 // 5) شاشة الحالة
-await A.p.evaluate(()=>location.hash='#/cloud');await A.p.waitForTimeout(300);await A.p.screenshot({path:OUT+'/sync_status.png'});
-await A.p.evaluate(()=>location.hash='#/');await A.p.waitForTimeout(300);await A.p.screenshot({path:OUT+'/dash_synced.png'});
+await A.p.evaluate(()=>location.hash='#/cloud');await A.p.waitForTimeout(300);await A.p.waitForTimeout(800);await waitSynced(A.p);await A.p.waitForTimeout(200);await A.p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await A.p.waitForTimeout(250);await A.p.screenshot({path:OUT+'/sync_status.png'});
+await A.p.evaluate(()=>location.hash='#/');await A.p.waitForTimeout(300);await A.p.evaluate(()=>document.querySelector('#toast')?.classList.remove('on'));await A.p.waitForTimeout(250);await A.p.screenshot({path:OUT+'/dash_synced.png'});
 ok('مفيش أخطاء جافاسكريبت',!A.p.errs.length&&!B.p.errs.length,[...A.p.errs,...B.p.errs].join(' | '));
 await b.close();const f=res.filter(r=>!r.pass).length;console.log(`\n${res.length-f}/${res.length} PASS`);process.exit(f?1:0);
