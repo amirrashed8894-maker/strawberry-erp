@@ -67,7 +67,9 @@ Deno.serve(async (req) => {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const url = new URL(req.url), action = (body as any).action || url.searchParams.get("action") || "latest";
     const cfg = Object.fromEntries((await sql`select k,v from serp.config`).map((r: any) => [r.k, r.v]));
-    const cronOk = cfg.cron_token && req.headers.get("x-cron-token") === cfg.cron_token;
+    const ct = req.headers.get("x-cron-token");
+    // رمز الكرون متخزن في Vault؛ هنا بنقارن بالـ hash بس (cron_token القديم نص صريح للتوافق)
+    const cronOk = !!ct && ((cfg.cron_token_hash && (await sha(ct)) === cfg.cron_token_hash) || (cfg.cron_token && ct === cfg.cron_token));
     const secretOk = !!req.headers.get("x-backup-secret") && (await sha(req.headers.get("x-backup-secret")!)) === cfg.backup_secret_hash;
     if (!cronOk && !secretOk) return json({ ok: false, error: "unauthorized" }, 401);
     const incTest = !!(body as any).include_test;

@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const VER='1.2.6',E=ERP,n=E.n,fm=E.fmt;
+const VER='1.2.7',E=ERP,n=E.n,fm=E.fmt;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const f0=x=>fm(x,0),f2=x=>fm(x,2),f1=x=>fm(x,1);

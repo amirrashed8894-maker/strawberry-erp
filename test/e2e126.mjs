@@ -14,7 +14,7 @@ const NATIVE=[];const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>er
 await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
 await p.goto(BASE);await p.waitForFunction(()=>window.__ready);
 ok('مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));
-ok('النسخة 1.2.6',await p.evaluate(()=>APP.VER)==='1.2.6');
+ok('النسخة 1.2.6+',await p.evaluate(()=>APP.VER)>='1.2.6');
 ok('مساحة العمل مش «شركة الراشد للتجارة — تكاليف الفراولة»',await p.evaluate(()=>!((SYNC.state&&SYNC.state.name)||'').includes('الراشد')));
 
 const J=JSON.parse(fs.readFileSync('/workspace/strawberry_erp/test/scenario100.json','utf8'));

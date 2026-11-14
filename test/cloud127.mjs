@@ -1,0 +1,27 @@
+// v1.2.7: البرنامج بيكلم مشروع Supabase المستقل (strawberry-erp) — بروفايل مؤقت؛ رمز غلط بس + رمز «تجريبي»؛ مفيش أي كتابة على مساحة العمل الحقيقية
+import { chromium } from '/usr/local/lib/pnpm/5/.pnpm/playwright@1.63.0-alpha-2026-08-31/node_modules/playwright/index.mjs';
+import fs from 'fs';
+const BASE=process.env.BASE||'http://127.0.0.1:8811/';const NEW='tbajxvopdpprnwlsilkh',OLD='lzjyomqttmeqppxdsunb';
+const TK=fs.readFileSync('/workspace/strawberry_erp/.secret/test_key.txt','utf8').trim();
+const res=[];const ok=(n,c,i='')=>{res.push({n,pass:!!c});console.log((c?'PASS ':'FAIL ')+n+(i?' — '+i:''))};
+const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
+const ctx=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,locale:'ar-EG',timezoneId:'Africa/Cairo'});
+const hosts=new Set();ctx.on('request',r=>{const h=new URL(r.url()).hostname;if(h.endsWith('supabase.co'))hosts.add(h)});
+const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('dialog',d=>d.dismiss());
+await p.goto(BASE);await p.waitForFunction(()=>window.__ready);
+ok('النسخة 1.2.7',await p.evaluate(()=>APP.VER)==='1.2.7');
+ok('config.js بيشاور على المشروع الجديد',await p.evaluate(n=>window.ERP_CLOUD.url===`https://${n}.supabase.co`&&/^sb_publishable_/.test(window.ERP_CLOUD.key),NEW));
+ok('مش مربوط بالسحابة في البداية',await p.evaluate(()=>!SYNC.state.enabled));
+const fake=await p.evaluate(async()=>{const r=await fetch(ERP_CLOUD.url+'/rest/v1/rpc/serp_check',{method:'POST',headers:{apikey:ERP_CLOUD.key,'Content-Type':'application/json'},body:JSON.stringify({p_key:'fake_fake_fake_fake_fake_fake'})});return r.json()});
+ok('serp_check برمز مزيف → ok:false',fake&&fake.ok===false,JSON.stringify(fake));
+const j=await p.evaluate(()=>SYNC.join('fake_fake_fake_fake_fake_fake'));
+ok('الربط برمز مزيف مرفوض',j===false&&!(await p.evaluate(()=>SYNC.state.enabled)));
+const tbl=await p.evaluate(async()=>{const r=await fetch(ERP_CLOUD.url+'/rest/v1/workspaces?select=*',{headers:{apikey:ERP_CLOUD.key,'Accept-Profile':'serp'}});return r.status});
+ok('جداول serp مش متاحة بالمفتاح العام',tbl>=400,String(tbl));
+const st=await p.evaluate(async()=>{const r=await fetch(ERP_CLOUD.url+'/rest/v1/rpc/st_list_lots',{method:'POST',headers:{apikey:ERP_CLOUD.key,'Content-Type':'application/json'},body:'{}'});return r.status});
+ok('دوال برنامج الجودة مش موجودة في المشروع الجديد',st===404,String(st));
+const tj=await p.evaluate(k=>SYNC.join(k),TK);await p.waitForFunction(()=>SYNC.state.enabled&&!SYNC.state.syncing,null,{timeout:30000});
+ok('الربط بمساحة «تجريبي» على المشروع الجديد',tj===true&&(await p.evaluate(()=>SYNC.state.name)).startsWith('تجريبي'),await p.evaluate(()=>SYNC.state.error));
+ok('كل الطلبات راحت للمشروع الجديد بس',[...hosts].every(h=>h===NEW+'.supabase.co')&&!hosts.has(OLD+'.supabase.co'),[...hosts].join(','));
+ok('مفيش أخطاء جافاسكريبت',!errs.length,errs.join(' | '));
+await b.close();const f=res.filter(r=>!r.pass).length;console.log(`\n${res.length-f}/${res.length} PASS`);process.exit(f?1:0);
