@@ -10,7 +10,8 @@ const routeLocal=async c=>{if(!WK)return;await c.route('**/*',r=>{const u=new UR
 await routeLocal(ctx);
 const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
 p.on('dialog',d=>{(globalThis.__NATIVE=globalThis.__NATIVE||[]).push(d.type()+': '+d.message());d.dismiss()});await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
-await p.goto(BASE);await p.waitForFunction(()=>window.__ready);
+await p.goto(BASE);await p.waitForFunction(()=>window.__ready);await p.evaluate(async()=>{const s=APP.S();s.bomOn=false;await APP.upsert('settings',s)});// v1.2.4: السيناريو ده بيدخل المستلزمات يدوي — الصرف التلقائي متجرب في e2e124
+
 const go=async h=>{await p.evaluate(h=>location.hash=h,h);await p.waitForTimeout(120)};
 const S='#sheet ';
 const fill=async(path,v)=>{await p.fill(S+`input[data-p="${path}"]`,String(v));};
@@ -119,7 +120,7 @@ await p.reload();await p.waitForFunction(()=>window.__ready);ok('البيانا�
 await go('#/backup');const [dl]=await Promise.all([p.waitForEvent('download'),p.click('[data-act="backup"]')]);const bp=OUT+'/backup_test.json';await dl.saveAs(bp);
 const bj=JSON.parse(fs.readFileSync(bp,'utf8'));ok('ملف النسخة فيه كل البيانات',bj.app==='alrashed-strawberry-erp'&&bj.data.runs.length===1&&bj.data.purchases.length===2,dl.suggestedFilename());
 const ctx2=await b.newContext(WK?{...devices['iPhone 13'],locale:'ar-EG',timezoneId:'Africa/Cairo'}:{viewport:{width:390,height:844},locale:'ar-EG',timezoneId:'Africa/Cairo'});await routeLocal(ctx2);const p2=await ctx2.newPage();p2.on('dialog',d=>{(globalThis.__NATIVE=globalThis.__NATIVE||[]).push(d.type()+': '+d.message());d.dismiss()});await p2.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
-await p2.goto(BASE+'#/backup');await p2.waitForFunction(()=>window.__ready);ok('جهاز جديد يبدأ بالأساسيات بس',await p2.evaluate(()=>APP.D.runs.length===0&&APP.D.parties.length===1&&APP.D.factories.length===4&&APP.D.items.length===9&&APP.D.varieties.length===4));
+await p2.goto(BASE+'#/backup');await p2.waitForFunction(()=>window.__ready);ok('جهاز جديد يبدأ بالأساسيات بس',await p2.evaluate(()=>APP.D.runs.length===0&&APP.D.parties.length===1&&APP.D.factories.length===4&&APP.D.items.length===11&&APP.D.varieties.length===4));
 await p2.setInputFiles('#restoreFile',bp);await p2.waitForTimeout(800);ok('الاسترجاع رجّع نفس الأرقام',await p2.evaluate(()=>Math.abs(APP.C.R[APP.D.runs[0].id].perTon-37084)<0.01));
 // 12) تغيير طريقة الفرزة (توزيع بالوزن) ثم الرجوع
 await go('#/settings');await p.check('input[value="joint"]');await p.waitForTimeout(200);const J=await p.evaluate(()=>{const r=APP.C.R[APP.D.runs[0].id];return{perTon:r.perTon,farzKg:r.farzKgCost,rows:r.rows.map(s=>s.perTon)}});

@@ -50,4 +50,18 @@ assert.equal(E.parseDmy('٠٥/١١/٢٠٢٦'),'2026-11-05');assert.equal(E.parse
  const C2=E.compute(d2),x=C2.SL.cx;assert.ok(Math.abs(x.kg-1750)<1e-9&&Math.abs(x.amount-2100)<1e-9&&Math.abs(x.rev-105000)<1e-6&&x.nCont===2&&x.invNo==='FR27001');
  assert.ok(Math.abs(C2.R.r4.stockFin-(E.compute(net).R.r4.stockFin-1750))<1e-6);const e=C2.L['cus-fussga'].find(e=>e.ref==='cx');assert.equal(e.subs.length,2);assert.equal(C2.L.T1.filter(e=>e.ref==='cx'&&e.kind==='saleExp').length,1,'expense posted on container sale');assert.ok(Math.abs(x.exp-700)<1e-9);assert.ok(/A1 · بوليصة B1 · 1\.500 طن · سعر الكيلو \$1\.20 · القيمة \$1,800\.00/.test(e.subs[0].txt),e.subs[0].txt);
  assert.equal(E.contN(1),'حاوية واحدة');assert.equal(E.contN(2),'حاويتين');assert.equal(E.contN(3),'3 حاويات');assert.equal(E.contN(25),'25 حاوية');assert.equal(E.contN(103),'103 حاويات')}
+/* v1.2.4: رصيد افتتاحي لأي حساب (مبلغ/له-عليه/تاريخ/عملة) + مخزون افتتاحي للمستلزمات (كمية/تكلفة/تاريخ لكل مخزن) */
+{const base=JSON.parse(require('fs').readFileSync(__dirname+'/scenario100.json','utf8')).data;const C0=E.compute(base),n0=b=>+(b.parties.find(p=>p.id==='cus-fussga').open||0);
+ const d=JSON.parse(JSON.stringify(base));const R1=d.parties.find(p=>p.id==='R1');Object.assign(R1,{open:12500,openSide:'c',openDate:'2026-10-31',openCur:'EGP'});
+ const cu=d.parties.find(p=>p.id==='cus-fussga');Object.assign(cu,{open:1000,openSide:'d',openCur:'USD',openRate:50,openDate:''});
+ const C1=E.compute(d);const o=C1.L.R1[0];assert.equal(o.kind,'open');assert.equal(o.date,'2026-10-31');assert.equal(o.cr,12500);assert.ok(o.info.includes('31/10/2026')&&o.info.includes('له'));
+ near(C1.BAL.R1.bal,C0.BAL.R1.bal-12500,'opening credit');const oc=C1.L['cus-fussga'][0];assert.equal(oc.dr,50000);assert.ok(oc.info.includes('$1,000.00 × 50.00'));near(C1.BAL['cus-fussga'].bal,C0.BAL['cus-fussga'].bal-n0(base)+50000,'USD opening ×rate');
+ assert.equal(E.compute(Object.assign({},d,{parties:d.parties.map(p=>p.id==='R1'?Object.assign({},p,{open:''}):p)})).L.R1.filter(e=>e.kind==='open').length,0,'empty opening → no row');
+ /* المخزون الافتتاحي: بيزود الرصيد ويدخل المتوسط المرجح اللي بيتصرف بيه */
+ const d3=JSON.parse(JSON.stringify(base));const it=d3.items.find(i=>i.id==='itm7');it.openStock=[{locId:'fac1',qty:100,cost:2,date:''},{locId:'fac2',qty:50,cost:5,date:'2026-11-01'}];
+ d3.runs.find(r=>r.id==='r2').supplies.push({itemId:'itm7',qty:40,locId:'fac1'});const C3=E.compute(d3);const s=C3.SUP.itm7;
+ assert.equal(s.loc.fac1,60);assert.equal(s.loc.fac2,50);assert.equal(s.openQty,150);near(s.openVal,450,'opening value');
+ const iss=C3.issue.r2.find(l=>l&&l.itemId==='itm7');near(iss.avg,3,'avg includes both openings (100×2+50×5)/150');near(iss.cost,120,'issue cost');assert.ok(!iss.short);
+ assert.ok(!C3.warns.some(w=>w.item==='itm7'),'no shortage with opening stock');
+ const C4=E.compute(Object.assign({},d3,{items:d3.items.map(i=>i.id==='itm7'?Object.assign({},i,{openStock:[]}):i)}));assert.ok(C4.warns.some(w=>w.type==='issue'&&w.item==='itm7'),'without opening → shortage')}
 console.log('calc tests OK');

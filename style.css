@@ -157,3 +157,12 @@ details.est{border:1px solid var(--line);border-radius:12px;padding:8px 10px;bac
 .rp .inv td,.rp .inv th{font-size:11px}
 .rp .inv td.v,.rp .inv td.c{white-space:nowrap}
 .rp .invtot{display:flex;gap:8px;margin:8px 0}
+.sups .ln.auto,.costs .ln.auto{background:#fafaf9;border-style:dashed}
+.sups .ln .at,.costs .ln .at{flex:1 1 60%;color:var(--ink);font-size:14px;line-height:1.55}
+.sups .ab,.costs .ab{display:inline-block;font-size:11px;font-weight:800;color:#555;border:1px solid #bbb;border-radius:6px;padding:0 6px;margin-inline-end:4px}
+.sups .short{color:#b00020;font-weight:800;font-size:13px}
+.sups .hint .btn,.costs .hint .btn{margin-top:4px}
+#dlg .dlgb[data-kind="perCtn"] .dlgf{display:flex;align-items:center;gap:8px;margin:6px 0}
+#dlg .dlgb[data-kind="perCtn"] .dlgf span{flex:1;font-size:14px}
+#dlg .dlgb[data-kind="perCtn"] .dlgf input{width:96px;flex:0 0 96px}
+.ossel{width:100%;padding:10px;border:1px solid #ccc;border-radius:10px;background:#fff;font:inherit}

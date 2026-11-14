@@ -14,7 +14,8 @@ const mkCtx=async()=>{const c=await b.newContext(ctxOpt);if(WK&&!process.env.BAS
   await c.route(/supabase\.co/,r=>r.abort());return c};
 const ctx=await mkCtx();const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));
 p.on('dialog',d=>{(globalThis.__NATIVE=globalThis.__NATIVE||[]).push(d.type()+': '+d.message());d.dismiss()});await p.addInitScript({path:'/workspace/strawberry_erp/test/dlghook.js'});
-await p.goto(BASE);await p.waitForFunction(()=>window.__ready);
+await p.goto(BASE);await p.waitForFunction(()=>window.__ready);await p.evaluate(async()=>{const s=APP.S();s.bomOn=false;await APP.upsert('settings',s)});// v1.2.4: السيناريو ده بيدخل المستلزمات يدوي — الصرف التلقائي متجرب في e2e124
+
 ok('البروفايل مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));
 const S='#sheet ';
 const dmy=iso=>iso.slice(8,10)+'/'+iso.slice(5,7)+'/'+iso.slice(0,4);
