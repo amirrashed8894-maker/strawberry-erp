@@ -9,7 +9,7 @@ await ctx.route(/supabase\.co/,r=>r.abort());
 const NATIVE=[];const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('dialog',d=>{NATIVE.push(d.type());d.dismiss()});
 await p.addInitScript({path:R+'/test/dlghook.js'});
 await p.goto(BASE);await p.waitForFunction(()=>window.__ready);
-ok('النسخة 1.2.8',await p.evaluate(()=>APP.VER)==='1.2.8');
+ok('النسخة 1.2.8',await p.evaluate(()=>APP.VER)==='1.2.9');
 ok('مش مربوط بالسحابة (ولا بمساحة العمل الحقيقية)',await p.evaluate(()=>!SYNC.state.enabled&&!(SYNC.state.name||'').includes('الراشد')));
 const S='#sheet ';
 const editK=async(k,id)=>{await p.evaluate(([k,id])=>{const b=document.createElement('button');b.dataset.act='edit';b.dataset.k=k;b.dataset.id=id;document.body.appendChild(b);b.click();b.remove()},[k,id]);await p.waitForTimeout(80)};

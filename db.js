@@ -19,14 +19,44 @@ function histEntry(c,v,act,del){const id=v.id,ver=v.updatedAt||'';const k=c+':'+
   return{k,c,id,v:clone(v),del:!!del,act,at:new Date().toISOString(),dev:Store.dev||''}}
 const Store={
   ok:true,
-  async init(){if(!g.indexedDB){this.ok=false;mem=memStore();return}
-    try{db=await new Promise((res,rej)=>{const q=indexedDB.open(NAME,VER);q.onupgradeneeded=()=>{const d=q.result;STORES.forEach(s=>{if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:'k'})})};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);
+  async init(){if(!g.indexedDB){this.ok=false;this.err='no-idb';mem=memStore();return}
+    /* v1.2.9: لو القاعدة على الجهاز أحدث من الكود (ملفات قديمة من الكاش) بنفتحها بنسختها الحالية بدل ما نشتغل من غير تخزين؛ ولو فشلت بنحاول تاني قبل أي حاجة */
+    const openAt=v=>new Promise((res,rej)=>{const q=v?indexedDB.open(NAME,v):indexedDB.open(NAME);q.onupgradeneeded=()=>{const d=q.result;STORES.forEach(s=>{if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:'k'})})};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);
       /* v1.2.8: لو نافذة قديمة للبرنامج ماسكة القاعدة، نستنى (مش نشتغل من غير تخزين) ونطلب قفلها */
       q.onblocked=()=>{setTimeout(()=>{if(db)return;const d=document.createElement('div');d.className='notice';d.style.cssText='position:fixed;top:10px;left:10px;right:10px;z-index:99';d.textContent='في نافذة تانية مفتوحة للبرنامج بنسخة قديمة — اقفلها عشان البرنامج يكمل.';document.body.appendChild(d);q.addEventListener('success',()=>d.remove())},1500)}});
-      db.onversionchange=()=>{try{db.close()}catch(e){}location.reload()}}
-    catch(e){this.ok=false;mem=memStore()}
+    for(let i=0;i<3&&!db;i++){try{db=await openAt(VER)}catch(e){this.err=String(e&&e.name||e);
+        if(e&&e.name==='VersionError'){try{db=await openAt(0)}catch(e2){this.err=String(e2&&e2.name||e2)}}
+        if(!db)await new Promise(r=>setTimeout(r,700))}}
+    if(db){this.err='';db.onversionchange=()=>{try{db.close()}catch(e){}location.reload()};
+      /* القاعدة اتفتحت بنسخة أحدث من غير المخازن الجديدة؟ (مستحيل عمليًا) — نشتغل بالمخازن الموجودة بس */
+      const miss=STORES.filter(x=>!db.objectStoreNames.contains(x));if(miss.length){this.err='missing:'+miss.join(',');try{db.close()}catch(e){}db=null}}
+    if(!db){this.ok=false;mem=memStore()}
     try{let d=await this.meta('deviceId');if(!d){d=(navigator.userAgent.match(/iPhone|iPad|Android|Windows|Mac/)||['جهاز'])[0]+'-'+Math.random().toString(36).slice(2,8);await this.meta('deviceId',d)}this.dev=d}catch(e){}
-    try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}},
+    await this.persist()},
+  /* v1.2.9: نطلب من المتصفح (وخصوصًا آيفون) ما يمسحش تخزين البرنامج لوحده */
+  persisted:null,
+  async persist(){try{if(!navigator.storage)return null;let p=navigator.storage.persisted?await navigator.storage.persisted():null;if(!p&&navigator.storage.persist)p=await navigator.storage.persist();this.persisted=p;return p}catch(e){return null}},
+  /* v1.2.9: نسخة كاملة على الجهاز نفسه (في meta) قبل أي تحديث أو ترحيل أو أول سحب من السحابة — بتتحفظ آخر 30 نسخة */
+  async snapshot(reason,ver){const recs=await this.all('rec');if(!recs.length)return null;const at=new Date().toISOString();const k='snap:'+at;
+    const v={at,reason:reason||'',ver:ver||'',n:recs.length,rec:recs.map(r=>({c:r.c,v:r.v}))};await this.meta(k,v);
+    try{const L=(await this.snaps()).map(x=>x.k);for(const old of L.slice(30)){if(!db)delete mem.meta[old];else{const x=tx('readwrite');x.meta.delete(old);await x.done}}}catch(e){}return k},
+  async snaps(){const L=db?await (async()=>{const x=tx('readonly');return req(x.meta.getAll(IDBKeyRange.bound('snap:','snap:\uffff')))})():Object.values(mem.meta).filter(m=>String(m.k).indexOf('snap:')===0);
+    return L.map(m=>({k:m.k,at:m.v.at,reason:m.v.reason,ver:m.v.ver,n:m.v.n,rec:m.v.rec})).sort((a,b)=>String(b.at).localeCompare(String(a.at)))},
+  /* v1.2.9: إضافة سجل مش موجود بس (استرجاع/بذور) — عمره ما بيغطي سجل موجود */
+  async addMissing(list,opt){opt=opt||{};let n=0;const add=[];for(const [c,v] of list){const k=c+':'+v.id;let cur;if(!db)cur=mem.rec[k];else{const x=tx('readonly');cur=await req(x.rec.get(k))}if(!cur){add.push([c,v]);n++}}
+    if(add.length)await this.putMany(add,opt);return n},
+  /* v1.2.9: فحص كل قواعد البيانات والمخازن على الجهاز ده عن أي تسجيلات (للاسترجاع) */
+  async scan(colls){const out=[];const seen={};const take=(src,c,v,extra)=>{if(!v||!v.id||colls.indexOf(c)<0)return;out.push(Object.assign({src,c,v},extra||{}))};
+    let names=[NAME];try{if(indexedDB.databases){const L=await indexedDB.databases();L.forEach(d=>{if(d&&d.name&&names.indexOf(d.name)<0)names.push(d.name)})}}catch(e){}
+    for(const nm of names){let d2=null;try{d2=nm===NAME&&db?db:await new Promise((res,rej)=>{const q=indexedDB.open(nm);q.onupgradeneeded=()=>{try{q.transaction.abort()}catch(e){}};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);q.onblocked=()=>rej(new Error('blocked'))})}catch(e){continue}
+      for(const sn of Array.from(d2.objectStoreNames)){let rows=[];try{rows=await req(d2.transaction(sn,'readonly').objectStore(sn).getAll())}catch(e){continue}
+        rows.forEach(r=>{if(!r||typeof r!=='object')return;
+          if(r.c&&r.v&&r.v.id){take(nm+'/'+sn,r.c,r.v,{del:sn==='tomb'||!!r.deleted,at:r.at||''});return}
+          if(r.k&&String(r.k).indexOf('snap:')===0&&r.v&&Array.isArray(r.v.rec)){r.v.rec.forEach(x=>take(nm+'/snap '+(r.v.at||''),x.c,x.v));return}
+          if(r.v&&r.v.app==='alrashed-strawberry-erp'&&r.v.data)Object.keys(r.v.data).forEach(c=>(r.v.data[c]||[]).forEach(v=>take(nm+'/'+sn,c,v)))})}
+      if(d2!==db)try{d2.close()}catch(e){}}
+    try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);let j=null;try{j=JSON.parse(localStorage.getItem(k))}catch(e){}if(j&&j.data&&typeof j.data==='object')Object.keys(j.data).forEach(c=>(Array.isArray(j.data[c])?j.data[c]:[]).forEach(v=>take('localStorage/'+k,c,v)))}}catch(e){}
+    return{names,rows:out}},
   async all(store){if(!db)return Object.values(mem[store]);const x=tx('readonly');return req(x[store].getAll())},
   async loadAll(colls){const D={};colls.forEach(c=>D[c]=[]);(await this.all('rec')).forEach(r=>{if(D[r.c])D[r.c].push(r.v)});return D},
   /* list = [[coll, record], ...] — opt.noOut: من غير رفع (بذور أو بيانات جاية من السحابة) */

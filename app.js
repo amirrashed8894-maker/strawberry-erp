@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const VER='1.2.8',E=ERP,n=E.n,fm=E.fmt;
+const VER='1.2.9',E=ERP,n=E.n,fm=E.fmt;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const f0=x=>fm(x,0),f2=x=>fm(x,2),f1=x=>fm(x,1);
@@ -57,7 +57,7 @@ async function upsert(c,rec,quiet,note){const t=new Date().toISOString();rec=nor
   if(LOGC.indexOf(c)>=0){const old=get(c,rec.id);if(old){rec.edits=(old.edits||[]).slice();const ch=diffRec(old,rec);if(ch.length&&note)ch.unshift(note);if(ch.length)rec.edits.push({at:t,ch,txt:ch.slice(0,8).join('، ')+(ch.length>8?' …(+'+(ch.length-8)+')':'')});if(!rec.edits.length)delete rec.edits}}if(!rec.createdAt)rec.createdAt=t;rec.updatedAt=t;
   const i=D[c].findIndex(x=>x.id===rec.id);if(i>=0)D[c][i]=rec;else D[c].push(rec);
   const s=S();const list=[[c,rec]];if(c!=='settings'||!quiet){s.changedSince=true;s.updatedAt=t;if(c!=='settings')list.push(['settings',s])}
-  await Store.putMany(list);recompute();if(!quiet)render();if(window.SYNC)SYNC.kick();return rec}
+  await Store.putMany(list);recompute();if(!quiet)render();if(window.SYNC)SYNC.kick(150);return rec}
 async function remove(c,id){const rec=get(c,id);ARC=null;D[c]=D[c].filter(x=>x.id!==id);if(rec)await Store.del(c,rec);const s=S();s.changedSince=true;s.updatedAt=new Date().toISOString();await Store.put('settings',s);recompute();render();if(window.SYNC)SYNC.kick()}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2600)}
 
@@ -74,9 +74,17 @@ const facOpts=()=>D.factories.map(f=>[f.id,f.name]),varOpts=()=>D.varieties.map(
 const TABS=[['home','الرئيسية'],['buy','الشراء'],['runs','التشغيل'],['sales','البيع'],['acc','الحسابات'],['more','المزيد']];
 function route(){const h=(location.hash||'#/home').slice(2).split('/');return{v:h[0]||'home',id:h[1]||'',x:h[2]||''}}
 function render(){if(!D)return;const r=route();const fn=VIEWS[r.v]||VIEWS.home;let h='';try{h=fn(r)}catch(e){console.error(e);h='<div class="card">حصل خطأ في العرض: '+esc(e.message)+'</div>'}
-  $('#main').innerHTML=h;const tab=({run:'runs',party:'acc',stock:'more',reports:'more',master:'more',settings:'more',backup:'more',cloud:'more',archive:'more'})[r.v]||r.v;
+  $('#main').innerHTML=h;const tab=({run:'runs',party:'acc',stock:'more',reports:'more',master:'more',settings:'more',backup:'more',cloud:'more',archive:'more',recover:'more'})[r.v]||r.v;
   $('#nav').innerHTML=TABS.map(t=>'<button data-go="#/'+t[0]+'" class="'+(t[0]===tab?'on':'')+'">'+t[1]+'</button>').join('');
-  $('#ver').textContent='v'+VER;syncPill()}
+  $('#ver').textContent='v'+VER;syncPill();paintBanner()}
+/* v1.2.9: تنبيه ثابت فوق: التخزين مش شغال، أو الجهاز مش مربوط (البيانات على الموبايل ده بس) */
+function standalone(){try{return !!(navigator.standalone||matchMedia('(display-mode: standalone)').matches)}catch(e){return false}}
+function ctxTxt(){return standalone()?'أيقونة البرنامج على الشاشة الرئيسية':'المتصفح'}
+function bannerHtml(){if(!Store.ok)return '<div class="bnr bad"><b>التخزين على الجهاز مش شغال دلوقتي</b> — اللي هتكتبه مش هيتحفظ. اقفل البرنامج خالص وافتحه تاني'+(Store.err?' <small>('+esc(Store.err)+')</small>':'')+'</div>';
+  const st=window.SYNC&&SYNC.state;if(!st||!st.ready||st.enabled)return '';
+  return '<div class="bnr"><b>البيانات دي محفوظة على الموبايل ده بس</b> (فاتح من '+ctxTxt()+') ومش مربوطة بالسحابة. <button class="btn sm" data-go="#/cloud">اربط الجهاز</button> <button class="btn sm" data-act="backup">نسخة احتياطية</button></div>'}
+function paintBanner(){const el=$('#bnr');if(!el)return;const h=bannerHtml();if(el.__h!==h){el.__h=h;el.innerHTML=h}}
+
 const VIEWS={};
 function syncPill(){const el=$('#sync');if(!el||!window.SYNC)return;const s=SYNC.state;let t,c='';
   if(!s.enabled){t='☁ مش مربوط بالسحابة';c='off'}else if(s.syncing){t='☁ بيزامن…'}else if(!s.online){t='☁ أوفلاين'+(s.pending?' · '+s.pending+' مستني':'');c='warn'}
@@ -94,7 +102,6 @@ VIEWS.home=function(){
   const runs=D.runs.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')||n(b.no)-n(a.no)).slice(0,5);
   let h='';
   if(backupDue())h+='<div class="notice"><b>خد نسخة احتياطية:</b> البيانات محفوظة على الجهاز ده بس. '+(S().lastBackup?'آخر نسخة '+E.dmy(E.cairoIso(new Date(S().lastBackup))):'لسه ما اتاخدش نسخة')+'. <button class="btn sm" data-act="backup">نسخة الآن</button></div>';
-  if(!Store.ok)h+='<div class="notice"><b>تنبيه:</b> المتصفح ده مش سامح بالتخزين، البيانات هتضيع لو قفلت الصفحة.</div>';
   h+='<section class="card sum"><div class="lbl">ملخص الحسابات</div><div class="kpis k2">'+kpi('مستحق للموردين',N(f0(pay))+' ج')+kpi('مستحق على العملاء',N(f0(rec))+' ج')+kpi('مخزون إنتاج نهائي',N(fm(stF/1000,3))+' طن',N(f0(stZ))+' كجم فرزة')+kpi('قيمة المخزون بالتكلفة',N(f0(stV))+' ج')+kpi('إجمالي المبيعات',N(f0(rev))+' ج')+kpi('صافي الربح',N(f0(prof))+' ج')+'</div></section>';
   h+='<div class="quick"><button class="btn pri" data-act="new" data-k="purchase">+ فاتورة خام</button><button class="btn pri" data-act="new" data-k="run">+ تشغيلة</button><button class="btn" data-act="new" data-k="sale">+ بيع</button><button class="btn" data-act="new" data-k="payment">+ دفعة / تحصيل</button></div>';
   const w=warnList();if(w.length)h+='<section class="card"><h2>محتاج مراجعة</h2><ul class="wl">'+w.map(x=>'<li>'+x+'</li>').join('')+'</ul></section>';
@@ -181,7 +188,7 @@ function statement(pid,from,to){const L=C.L[pid]||[];let open=0;const rows=[];le
   let b=open;const out=rows.map(e=>{b+=e.dr-e.cr;dr+=e.dr;cr+=e.cr;return Object.assign({},e,{bal:b})});return{open,rows:out,dr,cr,close:b}}
 
 /* ----- المزيد ----- */
-VIEWS.more=function(){return '<div class="menu">'+[['#/cloud','الحفظ السحابي والأجهزة','المزامنة بين الموبايل والكمبيوتر، والنسخ اليومية'],['#/stock','المخزون','إنتاج نهائي وفرزة لكل تشغيلة، الخام، المستلزمات في كل مخزن'],['#/reports','التقارير','تكلفة التشغيلة، المقدر والفعلي، الربحية، كشوف الحساب، المخزون'],['#/master/factories','المصانع والمخازن','الثلاجة العربية، الحسن، الفجر، بوناتيرا…'],['#/master/varieties','الأصناف والتكلفة المقدرة','فراولة وأي صنف تاني، وأرقام التقدير لكل صنف'],['#/master/items','أصناف المستلزمات','الكرتون، الباليت، الكيس…'],['#/settings','الإعدادات','طريقة الفرزة، وزن الكرتونة والشيكارة، سعر الدولار'],['#/backup','النسخة الاحتياطية','حفظ كل البيانات في ملف واسترجاعها'],['#/archive','الأرشيف (المحذوف)','كل حاجة اتمسحت بتتحفظ هنا، وتقدر ترجّعها']].map(m=>'<button class="row" data-go="'+m[0]+'"><div><b>'+m[1]+'</b><div class="mut sm">'+m[2]+'</div></div><div class="amt">‹</div></button>').join('')+'</div>'};
+VIEWS.more=function(){return '<div class="menu">'+[['#/cloud','الحفظ السحابي والأجهزة','المزامنة بين الموبايل والكمبيوتر، والنسخ اليومية'],['#/stock','المخزون','إنتاج نهائي وفرزة لكل تشغيلة، الخام، المستلزمات في كل مخزن'],['#/reports','التقارير','تكلفة التشغيلة، المقدر والفعلي، الربحية، كشوف الحساب، المخزون'],['#/master/factories','المصانع والمخازن','الثلاجة العربية، الحسن، الفجر، بوناتيرا…'],['#/master/varieties','الأصناف والتكلفة المقدرة','فراولة وأي صنف تاني، وأرقام التقدير لكل صنف'],['#/master/items','أصناف المستلزمات','الكرتون، الباليت، الكيس…'],['#/settings','الإعدادات','طريقة الفرزة، وزن الكرتونة والشيكارة، سعر الدولار'],['#/backup','النسخة الاحتياطية','حفظ كل البيانات في ملف واسترجاعها'],['#/archive','الأرشيف (المحذوف)','كل حاجة اتمسحت بتتحفظ هنا، وتقدر ترجّعها'],['#/recover','استرجاع بيانات ضايعة','دوّر في كل التخزين اللي على الجهاز ده والنسخ التلقائية ورجّع الناقص']].map(m=>'<button class="row" data-go="'+m[0]+'"><div><b>'+m[1]+'</b><div class="mut sm">'+m[2]+'</div></div><div class="amt">‹</div></button>').join('')+'</div>'};
 VIEWS.stock=function(){const t=UI.stockTab;let h='<div class="vh"><button class="btn sm ghost" data-go="#/more">رجوع</button><h2>المخزون</h2><button class="btn sm" data-act="report" data-k="stock">PDF</button></div>';
   h+=seg('stockTab',[['fin','نهائي وفرزة'],['raw','الخام'],['sup','المستلزمات']],t);
   if(t==='fin'){const rows=D.runs.map(r=>({r,x:C.R[r.id]})).filter(o=>o.x.stockFin>0.005||o.x.stockFarz>0.005);
@@ -224,9 +231,27 @@ VIEWS.backup=function(){const s=S();return '<div class="vh"><button class="btn s
   '<section class="card"><p>البيانات بتتحفظ على الجهاز وبتترفع على السحابة أول بأول (لو الجهاز مربوط)، والسحابة بتعمل نسخة كاملة كل يوم الساعة 11 بالليل بتوقيت القاهرة. وتقدر كمان تاخد نسخة في ملف بإيدك هنا.</p>'+
   '<div class="mut">آخر نسخة: '+(s.lastBackup?E.dmy(E.cairoIso(new Date(s.lastBackup)))+' '+E.cairoTime(new Date(s.lastBackup))+' (القاهرة)':'لسه')+'</div>'+
   '<div class="quick q2"><button class="btn pri" data-act="backup">حفظ نسخة (JSON)</button><button class="btn" data-act="restore">استرجاع من ملف</button></div><input type="file" id="restoreFile" accept="application/json,.json" hidden>'+
-  '<div class="hint">الاسترجاع بيحط بيانات الملف مكان البيانات الحالية، والحالي بيتنقل للأرشيف وسجل التعديلات (مش بيتمسح نهائي).</div></section>'+
+  '<div class="quick"><button class="btn" data-go="#/recover">استرجاع بيانات ضايعة من الجهاز</button></div><div class="hint">الاسترجاع بيحط بيانات الملف مكان البيانات الحالية، والحالي بيتنقل للأرشيف وسجل التعديلات (مش بيتمسح نهائي).</div></section>'+
   '<section class="card"><h2>الأعداد</h2><div class="mut">'+[['purchases','فواتير خام'],['transports','نقل'],['supplyIn','فواتير مستلزمات'],['runs','تشغيلات'],['sales','مبيعات'],['payments','دفعات وتحصيلات'],['parties','حسابات']].map(x=>x[1]+' '+D[x[0]].length).join(' · ')+'</div></section>'};
 
+/* ===== v1.2.9: استرجاع بيانات ضايعة ===== */
+let RCV=null;
+const RCV_C=['purchases','transports','payments','supplyIn','transfers','runs','sales','parties','factories','varieties','items'];
+function rcvLabel(c,v){const k=(ARC_K[c]||[])[1]||c;return k+' '+(v.no!=null&&v.no!==''?'#'+v.no+' ':'')+(v.name?v.name+' ':'')+(v.date?E.dmy(v.date):'')}
+async function loadRecover(){const live={};E.COLLS.forEach(c=>D[c].forEach(v=>live[c+':'+v.id]=1));const sc=await Store.scan(E.COLLS);const snaps=await Store.snaps();
+  const best={},bySrc={};sc.rows.forEach(r=>{if(RCV_C.indexOf(r.c)<0)return;const k=r.c+':'+r.v.id;(bySrc[r.src]=bySrc[r.src]||{all:0,miss:{}}).all++;
+    if(live[k]||r.del||r.v.deletedAt)return;bySrc[r.src].miss[k]=1;const cur=best[k];if(!cur||String(r.v.updatedAt||'')>String(cur.v.updatedAt||''))best[k]=r});
+  RCV={names:sc.names,best,bySrc,snaps:snaps.map(x=>({k:x.k,at:x.at,reason:x.reason,ver:x.ver,n:x.n})),at:new Date().toISOString(),persisted:await Store.persist()};if(route().v==='recover'&&!F)render()}
+VIEWS.recover=function(){if(!RCV){loadRecover();return '<div class="vh"><button class="btn sm ghost" data-go="#/more">رجوع</button><h2>استرجاع بيانات ضايعة</h2><span></span></div><div class="empty">بيدوّر في الجهاز…</div>'}
+  const miss=Object.values(RCV.best);let h='<div class="vh"><button class="btn sm ghost" data-go="#/more">رجوع</button><h2>استرجاع بيانات ضايعة</h2><span></span></div>';
+  h+='<section class="card"><div class="mut">فاتح البرنامج من: <b>'+ctxTxt()+'</b> · التخزين الدايم: <b>'+(RCV.persisted===true?'متفعل':RCV.persisted===false?'المتصفح لسه ما وافقش':'غير معروف')+'</b> · قواعد البيانات على الجهاز: '+RCV.names.length+'</div>'+
+    '<div class="hint">على الآيفون، Safari وأيقونة الشاشة الرئيسية وأي متصفح جوه تطبيق تاني كل واحد ليه تخزين منفصل. لو البيانات مش هنا، افتح نفس الرابط من المكان التاني اللي كنت بتشتغل منه وادخل الصفحة دي.</div></section>';
+  h+='<section class="card"><h2>تسجيلات مش موجودة دلوقتي: '+miss.length+'</h2>'+(miss.length?'<ul class="wl">'+miss.slice(0,60).map(r=>'<li>'+esc(rcvLabel(r.c,r.v))+' <small class="mut">('+esc(r.src)+')</small></li>').join('')+(miss.length>60?'<li>… و'+(miss.length-60)+' كمان</li>':'')+'</ul><button class="btn pri wide" data-act="rcvAll">رجّع الـ '+miss.length+' تسجيل (من غير ما ألمس الموجود)</button>':'<div class="mut">ملقتش أي تسجيل ناقص في تخزين الجهاز ده.</div>')+'</section>';
+  h+='<section class="card"><h2>المصادر اللي اتفحصت</h2><ul class="wl">'+Object.keys(RCV.bySrc).map(k=>'<li>'+esc(k)+': '+RCV.bySrc[k].all+' تسجيل، منهم '+Object.keys(RCV.bySrc[k].miss).length+' مش موجود دلوقتي</li>').join('')+'</ul></section>';
+  h+='<section class="card"><h2>النسخ التلقائية على الجهاز</h2>'+(RCV.snaps.length?'<ul class="wl">'+RCV.snaps.map(x=>'<li>'+E.dmy(E.cairoIso(new Date(x.at)))+' '+E.cairoTime(new Date(x.at))+' — '+esc(x.reason)+' — '+x.n+' تسجيل</li>').join('')+'</ul>':'<div class="mut">لسه مفيش (بتتعمل لوحدها قبل أي تحديث).</div>')+'</section>';
+  return h+'<div class="quick"><button class="btn" data-act="rcvScan">دوّر تاني</button></div>'};
+async function recoverAll(){if(!RCV)return;const L=Object.values(RCV.best);if(!L.length)return;if(!await ask('هرجّع '+L.length+' تسجيل مش موجودين دلوقتي. الموجود مش هيتلمس. تكمل؟',{ok:'رجّع'}))return;
+  const t=new Date().toISOString();const n=await Store.addMissing(L.map(r=>[r.c,Object.assign({},r.v,{updatedAt:t})]),{act:'recover'});await reloadFromStore();if(window.SYNC)SYNC.kick(150);RCV=null;render();toast('رجع '+n+' تسجيل')}
 const ARC_K={purchases:['purchase','فاتورة خام'],transports:['transport','نقل'],payments:['payment','دفعة / تحصيل'],supplyIn:['supplyIn','فاتورة مستلزمات'],transfers:['transfer','تحويل مستلزمات'],runs:['run','تشغيلة'],sales:['sale','بيع'],parties:['party','حساب'],factories:['factory','مصنع / مخزن'],varieties:['variety','صنف'],items:['item','صنف مستلزمات']};
 let ARC=null;
 async function loadArc(){const live={};E.COLLS.forEach(c=>D[c].forEach(v=>live[c+':'+v.id]=1));const t=await Store.tombs();ARC=t.filter(x=>ARC_K[x.c]&&!live[x.k]).sort((a,b)=>String(b.v.deletedAt||b.v.updatedAt||'').localeCompare(String(a.v.deletedAt||a.v.updatedAt||'')));if(route().v==='archive'&&!F)render()}
@@ -279,7 +304,7 @@ function fs(label,p,opts,o){o=o||{};return '<div class="f'+(o.full?' full':'')+'
 function fseg(label,p,opts,o){const v=getP(F.d,p);return '<div class="f'+((o||{}).half?'':' full')+'"><label>'+label+'</label><div class="seg in2">'+opts.map(x=>'<button type="button" data-fset="'+p+'" data-v="'+x[0]+'" class="'+(String(v)===String(x[0])?'on':'')+'">'+x[1]+'</button>').join('')+'</div></div>'}
 function sec(t){return '<div class="sec">'+t+'</div>'}
 function openForm(spec){F=spec;F.d=JSON.parse(JSON.stringify(spec.rec));F.isNew=!spec.rec.id;drawForm();$('#sheet').hidden=false;document.body.classList.add('modal');$('#sheet').scrollTop=0}
-function closeForm(){const st=F&&F.staleRender;F=null;if(st)setTimeout(render,0);$('#sheet').hidden=true;$('#sheet').innerHTML='';document.body.classList.remove('modal')}
+function closeForm(){const st=F&&F.staleRender;F=null;clearTimeout(DRAFT_T);Store.meta('draft',null).catch(()=>{});if(window.__needReload&&!window.__rl){window.__rl=1;setTimeout(()=>location.reload(),150)}if(st)setTimeout(render,0);$('#sheet').hidden=true;$('#sheet').innerHTML='';document.body.classList.remove('modal')}
 function drawForm(){const sc=$('#sheet').scrollTop;$('#sheet').innerHTML='<div class="sh"><div class="shb"><button class="btn sm ghost" data-act="fclose">إلغاء</button><h2>'+F.title+'</h2><button class="btn sm pri" data-act="fsave">حفظ</button></div>'+
   '<div class="shc"><div class="grid">'+F.body(F.d)+(!F.isNew&&LOGC.indexOf(F.coll)>=0&&F.d.edits&&F.d.edits.length?'<div class="f full">'+enote(F.d)+'</div>':'')+'</div><div id="fsum">'+(F.summary?F.summary(F.d):'')+'</div><div id="ferr"></div>'+
   '<div class="actions a2"><button class="btn pri" data-act="fsave">حفظ</button>'+(!F.isNew&&F.del?'<button class="btn danger" data-act="fdel">حذف</button>':'<button class="btn ghost" data-act="fclose">إلغاء</button>')+'</div>'+(!F.isNew&&F.coll&&F.d.id?'<button class="btn ghost wide" data-act="fhist">سجل التعديلات</button>':'')+'</div></div>';$('#sheet').scrollTop=sc}
@@ -595,7 +620,16 @@ FORMS.item=function(rec){rec=rec||{name:'',unit:'وحدة',refPrice:''};return{t
   canDel:d=>D.supplyIn.some(x=>(x.lines||[]).some(l=>l.itemId===d.id))||D.runs.some(x=>(x.supplies||[]).some(l=>l.itemId===d.id))||D.transfers.some(x=>(x.lines||[]).some(l=>l.itemId===d.id))?'الصنف عليه حركات':''}};
 const KMAP={purchase:'purchases',transport:'transports',payment:'payments',supplyIn:'supplyIn',transfer:'transfers',run:'runs',sale:'sales',party:'parties',factory:'factories',variety:'varieties',item:'items'};
 async function openK(k,id,o){o=o||{};if(k==='sale'&&!id&&(o.kind||'export')!=='farz'){const L=await askContainers(o);if(!L)return;o=Object.assign({},o,{kind:'export',lines:L})}
-  const rec=id?JSON.parse(JSON.stringify(get(KMAP[k],id))):null;openForm(FORMS[k](rec,o))}
+  const rec=id?JSON.parse(JSON.stringify(get(KMAP[k],id))):null;openForm(FORMS[k](rec,o));F.fk=k;F.fo=JSON.parse(JSON.stringify(o||{}));saveDraftNow()}
+/* v1.2.9: مسودة تلقائية — أي حاجة بتتكتب في النموذج بتتحفظ على الجهاز فورًا، وبترجع لوحدها بعد reload أو تحديث */
+let DRAFT_T=null;
+function saveDraftNow(){clearTimeout(DRAFT_T);if(!F||!F.fk)return Promise.resolve();try{return Store.meta('draft',{at:new Date().toISOString(),fk:F.fk,fo:F.fo||{},title:F.title,d:JSON.parse(JSON.stringify(F.d))}).catch(()=>{})}catch(e){return Promise.resolve()}}
+function draftSoon(){clearTimeout(DRAFT_T);DRAFT_T=setTimeout(saveDraftNow,200)}
+['input','change','click'].forEach(ev=>document.addEventListener(ev,e=>{if(F&&F.fk&&e.target&&e.target.closest&&e.target.closest('#sheet'))draftSoon()}));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&F)saveDraftNow()});window.addEventListener('pagehide',()=>{if(F)saveDraftNow()});
+async function restoreDraft(){let dr=null;try{dr=await Store.meta('draft')}catch(e){}if(!dr||!dr.fk||!FORMS[dr.fk]||!dr.d)return false;
+  try{openForm(FORMS[dr.fk](JSON.parse(JSON.stringify(dr.d)),dr.fo||{}));F.d=JSON.parse(JSON.stringify(dr.d));F.fk=dr.fk;F.fo=dr.fo||{};drawForm();toast('رجعتلك اللي كنت بتكتبه في «'+(dr.title||'')+'» — لسه ماتحفظش');return true}catch(e){console.error(e);return false}}
+
 const NUMBERED=['purchases','transports','payments','supplyIn','transfers','runs','sales'];
 function commonErrs(d){const e=[];if(NUMBERED.indexOf(F.coll)>=0){const no=String(d.no==null?'':d.no).trim();if(!no)e.push('اكتب الرقم');else if(D[F.coll].some(x=>x.id!==d.id&&String(x.no==null?'':x.no).trim()===no))e.push('الرقم '+no+' متسجل قبل كده — كل رقم لازم يبقى مرة واحدة (الرقم المقترح '+nextNo(F.coll)+')')}
   const neg=[];(function walk(o,pth){if(Array.isArray(o))o.forEach((v,i)=>walk(v,pth+'.'+i));else if(o&&typeof o==='object')Object.keys(o).forEach(k=>{if(k==='est')return;walk(o[k],pth?pth+'.'+k:k)});else{const k=pth.split('.').pop();if(NUMK.indexOf(k)>=0&&String(o==null?'':o).trim()!==''){const v=E.parse(o);if(!isFinite(v))neg.push('رقم مكتوب غلط: «'+o+'»');else if(v<0)neg.push('مينفعش رقم بالسالب: «'+o+'»')}}})(d,'');
@@ -677,6 +711,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest('[data-go],
   else if(a==='allocManual'){if(!F)return;F.d.autoAlloc=false;(F.d.lines||[]).forEach(l=>{if(!hasAlloc(l)&&l.runId)l.alloc=[{runId:l.runId,kg:allocQty(F.d,l)}]});drawForm()}
   else if(a==='allocAuto'){if(!F)return;F.d.autoAlloc=true;allocSale(F.d,true);if(F.d.autoLoad)syncLoad(F.d);drawForm()}
   else if(a==='addConts'){if(!F)return;const L=await askContainers({},F.d);if(L&&F){F.d.lines=(F.d.lines||[]).concat(L);drawForm();toast('اتضاف '+L.length+' حاوية')}}
+  else if(a==='rcvAll')recoverAll();else if(a==='rcvScan'){RCV=null;render()}
   else if(a==='fclose')closeForm();else if(a==='fsave')saveForm();else if(a==='fdel')delForm();else if(a==='fhist'){const c=F.coll,id=F.d.id;closeForm();location.hash='#/hist/'+c+'/'+encodeURIComponent(id)}
   else if(a==='toggleEst'){F.openEst=!F.openEst}
   else if(a==='estReset'){const v=get('varieties',F.d.varietyId);if(v){F.d.est=JSON.parse(JSON.stringify(v.est));F.openEst=true;drawForm()}}
@@ -724,9 +759,12 @@ let MIG126=false;async function migrate126(){if(MIG126)return 0;MIG126=true;let 
   if(k){recompute();if(!F)render()}return k}
 /* ===== البداية ===== */
 async function start(){await Store.init();let d=await Store.loadAll(E.COLLS);
-  if(!d.settings.length){d=E.seed();const list=[];E.COLLS.forEach(c=>d[c].forEach(v=>list.push([c,v])));await Store.putMany(list,{noOut:true})}
-  D=d;recompute();await migrate125();await migrate126();render();document.body.classList.add('ready');window.__ready=true;
-  if(window.SYNC&&!start.done){start.done=1;SYNC.on(()=>{syncPill();if(route().v==='cloud'&&!F&&!(document.activeElement&&document.activeElement.id==='joinCode'))render()});await SYNC.init(window.APP)}}
+  /* v1.2.9: نسخة كاملة على الجهاز قبل أي ترحيل بعد كل تحديث للبرنامج */
+  let pv;try{pv=await Store.meta('appVer')}catch(e){}if(pv!==VER){try{await Store.snapshot(pv?'قبل التحديث من '+pv+' لـ '+VER:'أول فتح بالنسخة '+VER,VER)}catch(e){}}
+  /* البيانات الأساسية بتتضاف بس لو مش موجودة — عمرها ما بتغطي تسجيل موجود */
+  if(!d.settings.length){const sd=E.seed();const list=[];E.COLLS.forEach(c=>sd[c].forEach(v=>list.push([c,v])));await Store.addMissing(list,{noOut:true,act:'seed'});d=await Store.loadAll(E.COLLS);if(!d.settings.length)d.settings=sd.settings}
+  D=d;recompute();await migrate125();await migrate126();try{await Store.meta('appVer',VER)}catch(e){}render();await restoreDraft();document.body.classList.add('ready');window.__ready=true;
+  if(window.SYNC&&!start.done){start.done=1;SYNC.on(()=>{syncPill();paintBanner();if(route().v==='cloud'&&!F&&!(document.activeElement&&document.activeElement.id==='joinCode'))render()});await SYNC.init(window.APP)}}
 window.APP={get F(){return F},editNotes,refRec,stmtNotes,reloadFromStore,get D(){return D},get C(){return C},S,get,name,statement,partyLabel,runLabel,balTxt,VER,esc,f0,f2,f1,f3,N,reload:start,upsert};
 start();
 })();

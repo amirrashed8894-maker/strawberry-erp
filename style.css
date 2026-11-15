@@ -177,3 +177,10 @@ details.est{border:1px solid var(--line);border-radius:12px;padding:8px 10px;bac
 .albk{margin:8px 0;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:#fff}.albk .lbl{font-weight:700;margin-bottom:4px}
 .lt.al{display:block;font-size:.92em;line-height:1.6}.aled{display:flex;flex-direction:column;gap:4px;width:100%}.alr{display:flex;gap:6px;align-items:center}.alr .sel{flex:1}
 .alb .hint .btn{margin-inline-start:6px}
+
+/* v1.2.9: تنبيه ثابت */
+#bnr:empty{display:none}
+.bnr{margin:8px 12px 0;padding:8px 10px;border:1px solid #e0c36a;background:#fff8e1;border-radius:10px;font-size:13px;line-height:1.7}
+.bnr.bad{border-color:#d9534f;background:#fdecea}
+.bnr .btn{margin-inline-start:4px}
+@media print{#bnr{display:none}}

@@ -192,6 +192,13 @@ details.est{border:1px solid var(--line);border-radius:12px;padding:8px 10px;bac
 .albk{margin:8px 0;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:#fff}.albk .lbl{font-weight:700;margin-bottom:4px}
 .lt.al{display:block;font-size:.92em;line-height:1.6}.aled{display:flex;flex-direction:column;gap:4px;width:100%}.alr{display:flex;gap:6px;align-items:center}.alr .sel{flex:1}
 .alb .hint .btn{margin-inline-start:6px}
+
+/* v1.2.9: تنبيه ثابت */
+#bnr:empty{display:none}
+.bnr{margin:8px 12px 0;padding:8px 10px;border:1px solid #e0c36a;background:#fff8e1;border-radius:10px;font-size:13px;line-height:1.7}
+.bnr.bad{border-color:#d9534f;background:#fdecea}
+.bnr .btn{margin-inline-start:4px}
+@media print{#bnr{display:none}}
 </style>
 </head>
 <body>
@@ -200,6 +207,7 @@ details.est{border:1px solid var(--line);border-radius:12px;padding:8px 10px;bac
   <div class="brand"><img src="icon-192.png" alt=""><div><h1>تكاليف الفراولة</h1><div class="sub">شركة الراشد للتجارة</div></div></div>
   <div class="tr"><button class="syncp off" id="sync" data-go="#/cloud">☁</button><span class="ver" id="ver"></span></div>
  </header>
+ <div id="bnr"></div>
  <main id="main"><div class="empty">بيحمّل…</div></main>
 </div>
 <nav id="nav"></nav>
@@ -220,7 +228,7 @@ details.est{border:1px solid var(--line);border-radius:12px;padding:8px 10px;bac
 <script src="html2canvas.min.js" defer></script>
 <script src="jspdf.umd.min.js" defer></script>
 <script>
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){r.update&&r.update();setInterval(function(){r.update()},3600000)});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){r.update&&r.update();setInterval(function(){r.update()},3600000)});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){if(window.APP&&APP.F){window.__needReload=1;return}window.__rl=1;location.reload()}})})}
 </script>
 </body>
 </html>
