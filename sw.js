@@ -5,3 +5,4 @@ self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.a
 self.addEventListener('fetch',e=>{const q=e.request;if(q.method!=='GET'||new URL(q.url).origin!==location.origin)return;
  if(q.mode==='navigate'){e.respondWith(caches.match('./index.html').then(r=>r||fetch(q)).catch(()=>caches.match('./index.html')));return}
  e.respondWith(caches.match(q,{ignoreSearch:true}).then(r=>r||fetch(q).then(x=>{if(x.ok){const cp=x.clone();caches.open(C).then(c=>c.put(q,cp))}return x})))});
+// r2: إعادة تحميل الملفات لو الكاش (CDN) كان لسه قديم وقت التحديث
