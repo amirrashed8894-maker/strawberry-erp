@@ -136,8 +136,8 @@ BUILD.inv=function(o){const app=A(),s=app.get('sales',o.id);if(!s)return null;co
 /* ===== الربحية ===== */
 function profitData(o){const app=A(),D=app.D,C=app.C;const inP=s=>(!o.from||s.date>=o.from)&&(!o.to||s.date<=o.to);
   const sales=D.sales.filter(inP).sort((a,b)=>(a.date||'').localeCompare(b.date||'')||n(a.no)-n(b.no));
-  const L=[];sales.forEach(s=>{const x=C.SL[s.id];x.lines.forEach(l=>{const r=C.R[l.runId]||{},run=app.get('runs',l.runId)||{};const ex=x.rev?x.exp*l.egp/x.rev:(x.lines.length?x.exp/x.lines.length:0);
-    L.push({s,x,l,r,run,exp:ex,load:l.load||0,profit:l.egp-l.cogs-ex-(l.load||0),variety:app.name('varieties',run.varietyId),prov:r.method!=='joint'&&r.status&&r.status!=='final'})})});
+  const L=[];sales.forEach(s=>{const x=C.SL[s.id];x.lines.forEach(l0=>(l0.parts||[l0]).forEach(q=>{/* v1.2.8: كل جزء من التوزيع على التشغيلات سطر لوحده بتكلفة تشغيلته */const l=l0.parts?Object.assign({},l0,q):l0;const r=C.R[l.runId]||{},run=app.get('runs',l.runId)||{};const ex=x.rev?x.exp*l.egp/x.rev:(x.lines.length?x.exp/x.lines.length*(q.share==null?1:q.share):0);
+    L.push({s,x,l,r,run,exp:ex,load:l.load||0,profit:l.egp-l.cogs-ex-(l.load||0),variety:app.name('varieties',run.varietyId),prov:r.method!=='joint'&&r.status&&r.status!=='final'})}))});
   const tot={rev:0,cogs:0,exp:0,load:0,kg:0,fin:0,farz:0,finRev:0,finCost:0,finLoad:0};L.forEach(z=>{tot.rev+=z.l.egp;tot.cogs+=z.l.cogs;tot.exp+=z.exp;tot.load+=z.load;tot.kg+=z.l.kg;if(z.x.kind==='farz')tot.farz+=z.l.kg;else{tot.fin+=z.l.kg;tot.finRev+=z.l.egp;tot.finCost+=z.l.cogs+z.exp+z.load;tot.finLoad+=z.load}});tot.profit=tot.rev-tot.cogs-tot.exp-tot.load;
   const prov=[...new Set(L.filter(z=>z.prov).map(z=>z.l.runId))].map(id=>C.R[id]);return{app,C,sales,L,tot,prov}}
 function grp(L,key,label){const m={},order=[];L.forEach(z=>{const k=key(z);if(!m[k]){m[k]={k,label:label(z),rev:0,cogs:0,exp:0,load:0,kg:0,ids:new Set(),prov:false};order.push(k)}const g=m[k];g.rev+=z.l.egp;g.cogs+=z.l.cogs;g.exp+=z.exp;g.load+=z.load;g.kg+=z.l.kg;g.ids.add(z.s.id);if(z.prov)g.prov=true});return order.map(k=>m[k])}

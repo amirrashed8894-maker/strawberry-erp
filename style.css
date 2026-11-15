@@ -126,7 +126,7 @@ details.est{border:1px solid var(--line);border-radius:12px;padding:8px 10px;bac
 .rp .rwords{border:1px solid #111;border-radius:8px;padding:6px 10px;margin:8px 0 4px;font-size:12px;background:#fff}
 .rp .flag{display:inline-block;border:1px solid #111;border-radius:4px;padding:0 4px;font-size:9.5px;font-weight:800;line-height:1.5;margin-inline-start:4px}
 .rp tr.st2 td{background:#fbfbfa;font-weight:700;border-bottom:1.5px solid #999}.rp table.pd td:first-child{min-width:150px}.rp bdi{unicode-bidi:isolate}
-.arc .row{cursor:default}.arc .row .btn{flex:none}
+.arc .row{cursor:default}.arc .row .btn{flex:none}.arc .row .rb{flex:none;display:flex;gap:6px}.hist .row{align-items:flex-start}.hist .enote{margin-top:4px}
 .enote{color:#8a8a8a;font-size:11px;font-weight:300;line-height:1.45;margin-top:2px}
 .rp .enote{color:#8f8f8f;font-size:9px;font-weight:300;line-height:1.35;margin-top:1px}
 @media print{@page{size:A4;margin:0}html,body{background:#fff}#app,#nav,#sheet,.repbar,#toast,#busy{display:none!important}
@@ -173,3 +173,7 @@ details.est{border:1px solid var(--line);border-radius:12px;padding:8px 10px;bac
 .ldb .ab{display:inline-block;font-size:11px;font-weight:800;color:#555;border:1px solid #bbb;border-radius:6px;padding:0 6px;margin-inline-end:4px}
 .ldb .short{color:#b00020;font-weight:800;font-size:13px}
 .ldb .ln .at{flex:1 1 60%;font-size:14px;line-height:1.55}
+/* v1.2.8 توزيع البيع على التشغيلات */
+.albk{margin:8px 0;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:#fff}.albk .lbl{font-weight:700;margin-bottom:4px}
+.lt.al{display:block;font-size:.92em;line-height:1.6}.aled{display:flex;flex-direction:column;gap:4px;width:100%}.alr{display:flex;gap:6px;align-items:center}.alr .sel{flex:1}
+.alb .hint .btn{margin-inline-start:6px}

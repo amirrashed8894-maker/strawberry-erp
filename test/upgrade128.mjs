@@ -1,0 +1,30 @@
+// v1.2.7 → v1.2.8 على نفس الجهاز: القاعدة بتترقى (v2→v3) من غير ما حاجة تضيع، ونافذة قديمة مفتوحة ما بتخليش البرنامج يشتغل من غير تخزين
+import { chromium } from '/usr/local/lib/pnpm/5/.pnpm/playwright@1.63.0-alpha-2026-08-31/node_modules/playwright/index.mjs';
+import fs from 'fs';
+const OLD=process.env.OLD||'/tmp/erp127',NEW='/workspace/strawberry_erp';let ROOT=OLD;
+const res=[];const ok=(n,c,i='')=>{res.push({n,pass:!!c});console.log((c?'PASS ':'FAIL ')+n+(i?' — '+String(i).slice(0,240):''))};
+const MT={html:'text/html; charset=utf-8',js:'text/javascript',json:'application/json',webmanifest:'application/manifest+json',png:'image/png',jpg:'image/jpeg',css:'text/css'};
+const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
+const ctx=await b.newContext({viewport:{width:390,height:844},locale:'ar-EG',timezoneId:'Africa/Cairo',serviceWorkers:'block'});
+await ctx.route('**/*',r=>{const u=new URL(r.request().url());if(u.hostname!=='erp.test')return r.abort();const f=ROOT+(u.pathname==='/'?'/index.html':u.pathname);if(fs.existsSync(f))return r.fulfill({status:200,body:fs.readFileSync(f),contentType:MT[f.split('.').pop()]||'application/octet-stream'});return r.fulfill({status:404,body:''})});
+const errs=[];const p=await ctx.newPage();p.on('pageerror',e=>errs.push(String(e)));await p.addInitScript({path:NEW+'/test/dlghook.js'});
+await p.goto('http://erp.test/');await p.waitForFunction(()=>window.__ready);
+ok('النسخة القديمة 1.2.7 شغالة',await p.evaluate(()=>APP.VER)==='1.2.7');
+await p.evaluate(()=>location.hash='#/backup');await p.setInputFiles('#restoreFile',NEW+'/test/scenario100.json');await p.waitForFunction(()=>APP.D.runs.length>=4,null,{timeout:15000});await p.waitForTimeout(600);
+const before=await p.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(APP.D).map(([c,L])=>[c,L.length]))));
+const py=await p.evaluate(()=>APP.D.payments[0].id);
+await p.evaluate(async id=>{const b=document.createElement('button');b.dataset.act='edit';b.dataset.k='payment';b.dataset.id=id;document.body.appendChild(b);b.click();b.remove()},py);await p.waitForTimeout(100);await p.click('#sheet [data-act="fdel"]');await p.waitForTimeout(400);
+// نافذة قديمة لسه مفتوحة + نافذة جديدة بالنسخة 1.2.8
+ROOT=NEW;const p2=await ctx.newPage();p2.on('pageerror',e=>errs.push(String(e)));await p2.addInitScript({path:NEW+'/test/dlghook.js'});
+await p2.goto('http://erp.test/');await p2.waitForTimeout(2500);
+ok('النسخة الجديدة بتستنى النافذة القديمة (مش بتشتغل فاضية)',await p2.evaluate(()=>!window.__ready&&document.body.innerText.includes('اقفلها')));
+await p.close();await p2.waitForFunction(()=>window.__ready,null,{timeout:15000});
+ok('بعد قفل القديمة: 1.2.8 اشتغلت بالتخزين',await p2.evaluate(()=>APP.VER==='1.2.8'&&Store.ok));
+const after=await p2.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(APP.D).map(([c,L])=>[c,L.length]))));
+const bj=JSON.parse(before);bj.payments-=1;
+ok('كل البيانات موجودة بعد الترقية (والمحذوف قبلها في الأرشيف)',after===JSON.stringify(bj)&&await p2.evaluate(async id=>(await Store.tombs()).some(t=>t.k==='payments:'+id),py),before+' → '+after);
+ok('مخازن السجل اتعملت',await p2.evaluate(async()=>typeof (await Store.histCount())==='number'));
+const pu=await p2.evaluate(async()=>{const x=JSON.parse(JSON.stringify(APP.D.purchases[0]));x.price=+x.price+3;await APP.upsert('purchases',x,true);return (await Store.history('purchases',x.id)).length});
+ok('أول تعديل بعد الترقية اتسجل',pu===1);
+ok('مفيش أخطاء جافاسكريبت',!errs.length,errs.join(' | '));
+await b.close();const f=res.filter(r=>!r.pass).length;console.log(`\n${res.length-f}/${res.length} PASS`);process.exit(f?1:0);

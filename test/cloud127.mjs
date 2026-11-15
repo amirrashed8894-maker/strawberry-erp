@@ -9,7 +9,7 @@ const ctx=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasT
 const hosts=new Set();ctx.on('request',r=>{const h=new URL(r.url()).hostname;if(h.endsWith('supabase.co'))hosts.add(h)});
 const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('dialog',d=>d.dismiss());
 await p.goto(BASE);await p.waitForFunction(()=>window.__ready);
-ok('النسخة 1.2.7',await p.evaluate(()=>APP.VER)==='1.2.7');
+ok('النسخة 1.2.7+',await p.evaluate(()=>APP.VER)>='1.2.7');
 ok('config.js بيشاور على المشروع الجديد',await p.evaluate(n=>window.ERP_CLOUD.url===`https://${n}.supabase.co`&&/^sb_publishable_/.test(window.ERP_CLOUD.key),NEW));
 ok('مش مربوط بالسحابة في البداية',await p.evaluate(()=>!SYNC.state.enabled));
 const fake=await p.evaluate(async()=>{const r=await fetch(ERP_CLOUD.url+'/rest/v1/rpc/serp_check',{method:'POST',headers:{apikey:ERP_CLOUD.key,'Content-Type':'application/json'},body:JSON.stringify({p_key:'fake_fake_fake_fake_fake_fake'})});return r.json()});

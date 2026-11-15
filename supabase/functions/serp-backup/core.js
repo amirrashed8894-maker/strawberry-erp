@@ -142,7 +142,7 @@ function compute(D){
 
   /* مبيعات الفرزة الفعلية لكل تشغيلة (صافي بعد مصروفات البيع) — ده اللي بيتخصم من التكلفة، مش سعر التقدير */
   const FS={};
-  D.sales.forEach(s=>{if(s.kind!=='farz')return;const rate=s.cur==='USD'?n(s.rate):1;const L=(s.lines||[]).map(l=>({runId:l.runId,kg:n(l.kg),rev:n(l.kg)*n(l.price)*rate}));
+  D.sales.forEach(s=>{if(s.kind!=='farz')return;const rate=s.cur==='USD'?n(s.rate):1;const L=[];(s.lines||[]).forEach(l=>{const kg=n(l.kg),rv=kg*n(l.price)*rate,al=allocOf(l);if(!al){L.push({runId:l.runId,kg,rev:rv});return}const t=al.reduce((a,x)=>a+n(x.kg),0);al.forEach(x=>L.push({runId:x.runId,kg:n(x.kg),rev:t?rv*n(x.kg)/t:rv/al.length}))});
     const rev=L.reduce((a,l)=>a+l.rev,0),exp=(s.expenses||[]).reduce((a,e)=>a+n(e.amount),0);
     L.forEach(l=>{const f=FS[l.runId]=FS[l.runId]||{kg:0,rev:0,net:0,sales:[]};const net=l.rev-(rev?exp*l.rev/rev:(L.length?exp/L.length:0));f.kg+=l.kg;f.rev+=l.rev;f.net+=net;f.sales.push({saleId:s.id,no:s.no,date:s.date,kg:l.kg,rev:l.rev,net})})});
   /* التشغيلات */
@@ -151,12 +151,12 @@ function compute(D){
 
   /* المبيعات */
   const SL={},sold={};D.runs.forEach(r=>sold[r.id]={fin:0,farz:0});
-  D.sales.forEach(s=>{const x=saleInfo(s,{R,RN,S,loadIss});SL[s.id]=x;x.lines.forEach(l=>{if(sold[l.runId])sold[l.runId][x.kind==='farz'?'farz':'fin']+=l.kg})});
+  D.sales.forEach(s=>{const x=saleInfo(s,{R,RN,S,loadIss});SL[s.id]=x;x.lines.forEach(l=>l.parts.forEach(q=>{if(sold[q.runId])sold[q.runId][x.kind==='farz'?'farz':'fin']+=q.kg}))});
   Object.keys(R).forEach(id=>{const r=R[id],so=sold[id];r.soldFin=so.fin;r.soldFarz=so.farz;r.stockFin=r.fin-so.fin;r.stockFarz=r.farz-so.farz});
   /* ربحية التشغيلة: إيراد سطورها ناقص تكلفتها ناقص نصيبها من مصروفات البيع */
   Object.values(R).forEach(r=>{r.sales={rev:0,cogs:0,exp:0,load:0,profit:0,finRev:0,farzRev:0}});
-  Object.values(SL).forEach(x=>x.lines.forEach(l=>{const r=R[l.runId];if(!r)return;const ex=x.rev?x.exp*l.egp/x.rev:(x.lines.length?x.exp/x.lines.length:0);
-    r.sales.rev+=l.egp;r.sales.cogs+=l.cogs;r.sales.exp+=ex;r.sales.load+=l.load;r.sales[x.kind==='farz'?'farzRev':'finRev']+=l.egp}));
+  Object.values(SL).forEach(x=>x.lines.forEach(l=>l.parts.forEach(q=>{const r=R[q.runId];if(!r)return;const ex=x.rev?x.exp*q.egp/x.rev:(x.lines.length?x.exp/x.lines.length*q.share:0);
+    r.sales.rev+=q.egp;r.sales.cogs+=q.cogs;r.sales.exp+=ex;r.sales.load+=q.load;r.sales[x.kind==='farz'?'farzRev':'finRev']+=q.egp})));
   Object.values(R).forEach(r=>{r.sales.profit=r.sales.rev-r.sales.cogs-r.sales.exp-r.sales.load;r.stockVal=r.stockFin*r.finKgCost+r.stockFarz*r.farzStockKg});
 
   /* الحسابات */
@@ -252,13 +252,19 @@ function runCost(r,c){
     discSave:rows.reduce((a,s)=>a+s.discSave,0),discKg:rows.reduce((a,s)=>a+s.discKg,0)}
 }
 
+function allocOf(l){return Array.isArray(l.alloc)&&l.alloc.length?l.alloc:null}
 function saleInfo(s,c){
   const kind=s.kind==='farz'?'farz':'export',cur=s.cur==='USD'?'USD':'EGP',rate=cur==='USD'?n(s.rate):1,cont=kind==='export'&&!!s.cont;
   const lines=(s.lines||[]).map((l,li)=>{const r=c.R[l.runId],rr=c.RN[l.runId]||{};let kg,amount;
     if(cont){kg=n(l.tons)*1000;amount=kg*n(l.price)}else if(kind==='export'){const ck=r?r.cartonKg:10;kg=n(l.cartons)*ck;amount=kg/1000*n(l.price)}else{kg=n(l.kg);amount=kg*n(l.price)}
     const kc=r?(kind==='farz'?r.farzKgCost:r.finKgCost):0;const LI=(c.loadIss&&c.loadIss[s.id]&&c.loadIss[s.id][li])||[];const ld=cont&&l.ld?l.ld:null;
     const loadSup=ld?LI.reduce((a,z)=>a+(z?z.cost:0),0):0,loadSvc=ld?(ld.svc||[]).reduce((a,z)=>a+n(z.amount),0):0;
-    return{loadSup,loadSvc,load:loadSup+loadSvc,loadItems:ld?(ld.sup||[]).map((z,ix)=>Object.assign({k:z.k,auto:!!z.auto,ovr:!!z.ovr},LI[ix]||{itemId:z.itemId,qty:n(z.qty),cost:0})):[],loadSvcs:ld?(ld.svc||[]).map(z=>({k:z.k,name:z.name,amount:n(z.amount),partyId:z.partyId||'',auto:!!z.auto,ovr:!!z.ovr})):[],loadLoc:ld?(ld.locId||rr.factoryId||''):'',runId:l.runId,runNo:rr.no,cartons:cont?(r&&r.cartonKg?kg/r.cartonKg:0):n(l.cartons),kg,tons:kg/1000,cont:cont?String(l.cont||'').trim():'',bl:cont?String(l.bl||'').trim():'',price:n(l.price),amount,egp:amount*rate,kgCost:kc,cogs:kg*kc}});
+    /* v1.2.8: توزيع السطر على أكتر من تشغيلة (alloc) — كل جزء بتكلفة تشغيلته؛ السطر من غير توزيع = جزء واحد بنفس الحساب القديم */
+    const al=allocOf(l);let parts,cogs;
+    if(!al){parts=[{runId:l.runId,runNo:rr.no,kg,kgCost:kc,cogs:kg*kc,share:1}];cogs=kg*kc}
+    else{const t=al.reduce((a,x)=>a+n(x.kg),0);parts=al.map(x=>{const ra=c.R[x.runId],k=n(x.kg),kca=ra?(kind==='farz'?ra.farzKgCost:ra.finKgCost):0;return{runId:x.runId,runNo:(c.RN[x.runId]||{}).no,kg:k,kgCost:kca,cogs:k*kca,share:t?k/t:1/al.length}});cogs=parts.reduce((a,q)=>a+q.cogs,0)}
+    parts.forEach(q=>{q.amount=amount*q.share;q.egp=amount*rate*q.share;q.loadSup=loadSup*q.share;q.loadSvc=loadSvc*q.share;q.load=(loadSup+loadSvc)*q.share;q.tons=q.kg/1000;const ra=c.R[q.runId];q.cartons=cont?(ra&&ra.cartonKg?q.kg/ra.cartonKg:0):(al?0:n(l.cartons))});
+    return{parts,alloc:!!al,loadSup,loadSvc,load:loadSup+loadSvc,loadItems:ld?(ld.sup||[]).map((z,ix)=>Object.assign({k:z.k,auto:!!z.auto,ovr:!!z.ovr},LI[ix]||{itemId:z.itemId,qty:n(z.qty),cost:0})):[],loadSvcs:ld?(ld.svc||[]).map(z=>({k:z.k,name:z.name,amount:n(z.amount),partyId:z.partyId||'',auto:!!z.auto,ovr:!!z.ovr})):[],loadLoc:ld?(ld.locId||rr.factoryId||''):'',runId:l.runId,runNo:rr.no,cartons:cont?(r&&r.cartonKg?kg/r.cartonKg:0):n(l.cartons),kg,tons:kg/1000,cont:cont?String(l.cont||'').trim():'',bl:cont?String(l.bl||'').trim():'',price:n(l.price),amount,egp:amount*rate,kgCost:al?(kg?cogs/kg:0):kc,cogs}});
   const amount=lines.reduce((a,l)=>a+l.amount,0),rev=amount*rate,cogs=lines.reduce((a,l)=>a+l.cogs,0);
   const exps=(s.expenses||[]).map(e=>({name:e.name,amount:n(e.amount),partyId:e.partyId||''}));const exp=exps.reduce((a,e)=>a+e.amount,0);
   const kg=lines.reduce((a,l)=>a+l.kg,0),load=lines.reduce((a,l)=>a+l.load,0),loadSup=lines.reduce((a,l)=>a+l.loadSup,0),loadSvc=lines.reduce((a,l)=>a+l.loadSvc,0),profit=rev-cogs-exp-load;
