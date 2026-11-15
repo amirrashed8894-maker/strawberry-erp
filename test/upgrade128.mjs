@@ -19,7 +19,7 @@ ROOT=NEW;const p2=await ctx.newPage();p2.on('pageerror',e=>errs.push(String(e)))
 await p2.goto('http://erp.test/');await p2.waitForTimeout(2500);
 ok('النسخة الجديدة بتستنى النافذة القديمة (مش بتشتغل فاضية)',await p2.evaluate(()=>!window.__ready&&document.body.innerText.includes('اقفلها')));
 await p.close();await p2.waitForFunction(()=>window.__ready,null,{timeout:15000});
-ok('بعد قفل القديمة: 1.2.9 اشتغلت بالتخزين',await p2.evaluate(()=>APP.VER==='1.2.9'&&Store.ok));
+ok('بعد قفل القديمة: 1.2.9 اشتغلت بالتخزين',await p2.evaluate(()=>APP.VER>='1.2.9'&&Store.ok));
 const after=await p2.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(APP.D).map(([c,L])=>[c,L.length]))));
 const bj=JSON.parse(before);bj.payments-=1;
 ok('كل البيانات موجودة بعد الترقية (والمحذوف قبلها في الأرشيف)',after===JSON.stringify(bj)&&await p2.evaluate(async id=>(await Store.tombs()).some(t=>t.k==='payments:'+id),py),before+' → '+after);

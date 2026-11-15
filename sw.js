@@ -1,4 +1,4 @@
-const C='strawberry-erp-1.2.9-cf12fad5';
+const C='strawberry-erp-1.3.0-41b8cde6';
 const F=['./','./index.html','./config.js','./core.js','./db.js','./sync.js','./report.js','./app.js','./html2canvas.min.js','./jspdf.umd.min.js','./manifest.webmanifest','./icon-180.png','./icon-192.png','./icon-512.png','./icon-maskable-512.png','./img/page.jpg','./img/mark.jpg'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F.map(u=>new Request(u,{cache:'reload'})))));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x.startsWith('strawberry-erp-')&&x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});

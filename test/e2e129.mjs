@@ -25,10 +25,10 @@ await p.evaluate(async()=>{location.hash='#/backup'});await p.setInputFiles('#re
 await p.evaluate(async()=>{const f=JSON.parse(JSON.stringify(APP.D.factories[0]));f.name=f.name+' (معدل)';await APP.upsert('factories',f,true)});
 const before=await cnt(p);const fac0=await p.evaluate(()=>JSON.stringify(APP.D.factories[0]));
 ROOT=NEW;global.SWBUMP='a';await p.reload();await ready(p);await p.waitForTimeout(WK?500:3500);await p.reload();await ready(p);await p.waitForTimeout(800);
-ok('اتحدث لـ 1.2.9',await p.evaluate(()=>APP.VER)==='1.2.9');
+ok('اتحدث لـ 1.2.9+',await p.evaluate(()=>APP.VER)>='1.2.9');
 ok('كل البيانات موجودة بعد التحديث',JSON.stringify(await cnt(p))===JSON.stringify(before),JSON.stringify(before)+' → '+JSON.stringify(await cnt(p)));
 const sn=await p.evaluate(async()=>(await Store.snaps()).map(x=>({r:x.reason,n:x.n})));
-ok('نسخة تلقائية على الجهاز اتعملت قبل الترحيل',sn.some(x=>/1\.2\.9/.test(x.r)&&x.n>50),JSON.stringify(sn));
+ok('نسخة تلقائية على الجهاز اتعملت قبل الترحيل',sn.some(x=>/1\.(2\.9|3\.\d)/.test(x.r)&&x.n>50),JSON.stringify(sn));
 ok('طلب التخزين الدايم من المتصفح',await p.evaluate(()=>Store.persisted!==undefined));
 ok('تنبيه «محفوظة على الموبايل ده بس» ظاهر (مش مربوط)',await p.evaluate(()=>/على الموبايل ده بس/.test(document.querySelector('#bnr').innerText)));
 // ===== 2) البذور ما بتغطيش تسجيل موجود لو الإعدادات ناقصة =====

@@ -16,7 +16,7 @@ function th(list){return '<tr>'+list.map(x=>'<th>'+x+'</th>').join('')+'</tr>'}
 function boxes(list){return '<div class="rk k'+list.length+'">'+list.map(b=>'<div class="m'+(b[3]?' main':'')+'"><span>'+bd(b[0])+'</span><b class="num">'+bd(b[1])+'</b>'+(b[2]?'<em class="num">'+bd(b[2])+'</em>':'')+'</div>').join('')+'</div>'}
 function h3(t){return '<h3>'+t+'</h3>'}
 function note(t){return '<div class="rn">'+bd(t)+'</div>'}
-function T(title,head,rows,foot,cls){return{table:{title,head,rows,foot,cls:cls||''}}}
+function T(title,head,rows,foot,cls,pre){return{table:{title,head,rows,foot,cls:cls||'',pre:pre||''}}}
 function H(html){return{html}}
 const methodTxt=m=>m==='joint'?'الفرزة: توزيع التكلفة على النهائي والفرزة بالوزن':'الفرزة: صافي بيعها الفعلي بيتخصم من تكلفة التشغيلة';
 function farzWarn(x){if(x.method==='joint'||x.status==='final')return null;return H(bd('<div class="rwarn"><b>⚠ '+esc(x.farzWarn)+'</b> — '+esc(x.costLabel)+'. الفرزة '+f0(x.farz)+' كجم: اتباع '+f0(x.farzSoldKg)+' كجم'+(x.farzSoldKg>0.005?' بمتوسط صافي '+f2(x.farzAvg)+' ج/كجم':'')+'، والباقي '+f0(x.farzUnsold)+' كجم '+(x.status==='provisional'?'بسعر مؤقت '+f2(x.farzTemp)+' ج/كجم':'من غير سعر')+'.</div>'))}
@@ -172,6 +172,45 @@ BUILD.profitDet=function(o){const {app,C,sales,L,tot,prov}=profitData(o);const b
     return tr([td('#'+esc(run.no||'?')+' '+E.dmy(run.date)),td(pv?'<span class="flag">مبدئي</span>':'نهائي'),td(f0(x.perTon||0),'v'),td(f0(r.fin),'v'),td(f0(r.farz),'v'),td(f0(r.rev),'v'),td(f0(r.cogs),'v'),td(f0(r.exp),'v'),td(f0(r.rev-r.cogs-r.exp),'v b'),td(f0(x.stockVal||0),'v')])}),'','xs'));
   b.push(H(note('«مبدئي» = التشغيلة لسه فيها فرزة ما اتباعتش (بسعر مؤقت أو من غير سعر)، فتكلفة الطن والربح ممكن يتغيروا. تكلفة الطن = تكلفة كيلو التشغيلة × 1000 (للفرزة: متوسط صافي بيعها). مصروفات البيع متوزعة على سطور البيع بنسبة الإيراد.')));
   return{title:'تقرير الربحية — مفصل',meta:per(o.from,o.to)+' · '+methodTxt(C.method),blocks:b,file:'profitability-detailed'}};
+/* ===== v1.3.0: تفصيل التكاليف — لكل طن ولكل حاوية ===== */
+const GN={};E.PART_G.forEach(g=>GN[g[0]]=g[1]);
+const qf=(q,u)=>q?fm(q,Math.abs(q-Math.round(q))>1e-6?(Math.abs(q)<10?3:1):0)+(u?' '+esc(u):''):'';
+const pf=v=>v?(Math.abs(v)<10?E.pfmt(Math.abs(v)):f2(Math.abs(v))):'';
+/* جدول المكونات: مجموعة ← بنود ← إجمالي قبل الفرزة ← الفرزة ← الصافي */
+function partRows(lines,o){o=o||{};const R=[];const byG={};lines.forEach(c=>(byG[c.g]=byG[c.g]||[]).push(c));const T=o.T||0;
+  const row=(c)=>tr([td(esc(c.name)+(c.noPrice?' <span class="flag">من غير سعر</span>':'')),td(qf(c.qty,c.unit),'v'),td(c.qty&&T?qf(c.qtyTon,''):'','v'),td(c.qty?pf(c.price):'','v'),td(f0(c.value),'v'),td(f0(c.perTon),'v b'),td(f1(c.pct)+'%','v')]);
+  const sub=(lbl,v,base,cls)=>tr([td(lbl),td(''),td(''),td(''),td(f0(v),'v'),td(T?f0(v/T):'','v b'),td(base?f1(v/base*100)+'%':'','v')],cls||'st2');
+  const pre=['raw','trans','sup','svc','oth'];let gross=0;
+  pre.forEach(g=>{const L=byG[g];if(!L)return;const v=L.reduce((a,c)=>a+c.value,0);gross+=v;if(L.length===1&&g!=='sup'){R.push(row(L[0]).replace('<tr>','<tr class="g">'));return}R.push('<tr class="g">'+tdc('<b>'+GN[g]+'</b>',4)+td(f0(v),'v')+td(T?f0(v/T):'','v')+td(o.base?f1(v/o.base*100)+'%':'','v')+'</tr>');L.forEach(c=>R.push(row(c)))});
+  const hasF=byG.farz,hasL=byG.load||byG.exp;
+  if(hasF||hasL)R.push(sub('إجمالي تكلفة التشغيل (قبل الفرزة)',gross,o.base,'st2'));
+  let net=gross;if(hasF){byG.farz.forEach(c=>{R.push(row(c));net+=c.value});R.push(sub('تكلفة الإنتاج النهائي',net,o.base,'st2'))}
+  ['load','exp'].forEach(g=>{const L=byG[g];if(!L)return;const v=L.reduce((a,c)=>a+c.value,0);net+=v;if(L.length===1){R.push(row(L[0]).replace('<tr>','<tr class="g">'));return}R.push('<tr class="g">'+tdc('<b>'+GN[g]+'</b>',4)+td(f0(v),'v')+td(T?f0(v/T):'','v')+td(o.base?f1(v/o.base*100)+'%':'','v')+'</tr>');L.forEach(c=>R.push(row(c)))});
+  return{R,net}}
+const PHD=th(['البند','الكمية','كمية / طن','سعر الوحدة ج','القيمة ج','ج / طن','%']);
+function chk(sum,total){return Math.abs(sum-total)<0.5?'✓ مجموع البنود = الإجمالي ('+f2(total)+' ج)':'⚠ فرق '+f2(sum-total)+' ج بين مجموع البنود والإجمالي'}
+BUILD.costDet=function(o){const app=A(),D=app.D,C=app.C;const rb=E.runsBreakdown(D,C,o),sh=E.contSheets(D,C,o),ct=E.contTotals(sh);if(!rb.runs.length&&!sh.length)return null;const b=[];
+  if(rb.prov||sh.some(z=>z.prov))b.push(H(bd('<div class="rwarn"><b>⚠ فيه تشغيلات تكلفتها مبدئية</b> (فرزة لسه ما اتباعتش أو من غير سعر) — الأرقام المعلّمة «مبدئي» هتتغير لما الفرزة تتباع أو يتحدد سعرها.</div>')));
+  b.push(H(boxes([['متوسط تكلفة الطن الصادر (إنتاج)',f0(rb.perTon)+' ج',f3(rb.T)+' طن نهائي من '+rb.runs.length+' تشغيلة',1],['تكلفة الطن المباع تصدير شامل التحميل والمصروفات',sh.length?f0(ct.costTon)+' ج':'—',sh.length?f3(ct.T)+' طن في '+sh.length+' '+(sh.some(z=>z.cont)?'حاوية':'سطر'):''],['ربح الطن المباع',sh.length&&ct.T?f0(ct.profit/ct.T)+' ج':'—',sh.length?'هامش '+f1(ct.margin)+'%':''],['إجمالي تكلفة الإنتاج',f0(rb.net)+' ج','خام '+f0(rb.rawKg)+' كجم']])));
+  if(rb.runs.length){const pr=partRows(rb.lines,{T:rb.T,base:rb.gross});b.push(T('تكلفة الطن الصادر لكل مكوّن — كل التشغيلات (مرجّح بالأطنان)',PHD,pr.R,tr([td('تكلفة الطن الصادر'),td(f0(rb.fin)+' كجم','v'),td(''),td(''),td(f0(rb.net),'v b'),td(f0(rb.perTon),'v b'),td('')],'tt'),'xs cd'));
+    b.push(H(note(chk(rb.sum,rb.net)+'. «كمية / طن» = الكمية ÷ أطنان الإنتاج النهائي، و«%» من إجمالي تكلفة التشغيل قبل خصم الفرزة. سعر المستلزمات = المتوسط المرجح في المخزن وقت الصرف (أو سعر المكونات لو مفيش تكلفة شراء).')))}
+  if(sh.length){b.push(T('ملخص تكلفة كل حاوية',th(['الحاوية','الفاتورة','التشغيلة','طن','كراتين','باليت','تكلفة الإنتاج ج','التحميل ج','مصروفات البيع ج','إجمالي التكلفة ج','ج / طن','الإيراد ج','الربح ج','%']),
+    sh.map(z=>tr([td(esc(z.contNo||'—')+(z.prov?' <span class="flag">مبدئي</span>':'')),td(esc(z.invNo||('#'+z.no))),td(z.runs.map(r=>'#'+esc(r.no||'?')).join('+')),td(f3(z.tons),'v'),td(f0(z.cartons),'v'),td(f0(z.pallets),'v'),td(f0(z.cogs),'v'),td(f0(z.load),'v'),td(f0(z.exp),'v'),td(f0(z.total),'v b'),td(f0(z.costTon),'v'),td(f0(z.rev),'v'),td(f0(z.profit),'v b'),td(f1(z.margin)+'%','v')])),
+    tr([td('الإجمالي — '+sh.length),td(''),td(''),td(f3(ct.T),'v'),td(f0(ct.cartons),'v'),td(f0(ct.pallets),'v'),td(f0(sh.reduce((a,z)=>a+z.cogs,0)),'v'),td(f0(sh.reduce((a,z)=>a+z.load,0)),'v'),td(f0(sh.reduce((a,z)=>a+z.exp,0)),'v'),td(f0(ct.total),'v b'),td(f0(ct.costTon),'v'),td(f0(ct.rev),'v'),td(f0(ct.profit),'v b'),td(f1(ct.margin)+'%','v')],'tt'),'xs'));
+    const pt=partRows(ct.lines,{T:ct.T,base:ct.total});b.push(T('تكلفة الطن المباع تصدير لكل مكوّن — شامل التحميل ومصروفات البيع',PHD,pt.R,tr([td('إجمالي تكلفة الطن المباع'),td(f3(ct.T)+' طن','v'),td(''),td(''),td(f0(ct.total),'v b'),td(f0(ct.costTon),'v b'),td('')],'tt'),'xs cd'));
+    b.push(H(note(chk(ct.sum,ct.total)+'. «%» هنا من إجمالي تكلفة الحاويات.')))}
+  b.push(H(note('تكلفة الإنتاج للحاوية = نصيبها من كل بند في التشغيلة بنسبة الكيلوهات (كيلو الحاوية ÷ إنتاج التشغيلة النهائي). بنود التحميل بالكمية الفعلية المصروفة للحاوية × متوسط سعرها، والخدمات بمبلغها. مصروفات البيع متوزعة على حاويات الفاتورة بنسبة الإيراد. الدولار بالسعر المسجل في كل بيع.')));
+  rb.runs.forEach(z=>{const r=z.run,x=z.x;const pr=partRows(z.P.lines,{T:z.P.T,base:x.total});
+    b.push(T('تشغيلة #'+esc(r.no)+' — '+E.dmy(r.date)+' · '+esc(app.name('factories',r.factoryId))+' · '+esc(app.name('varieties',r.varietyId))+' · '+f3(x.fin/1000)+' طن نهائي ('+f0(x.cartons)+' كرتونة) من '+f0(x.rawKg)+' كجم خام'+(x.method!=='joint'&&x.status!=='final'?' · مبدئي':''),PHD,pr.R,tr([td('تكلفة الطن الصادر'),td(f0(x.fin)+' كجم','v'),td(''),td(''),td(f0(x.finCost),'v b'),td(f0(x.perTon),'v b'),td('')],'tt'),'xs cd'))});
+  sh.forEach(z=>{const cu=app.get('parties',z.customerId)||{};const usd=z.cur==='USD';b.push({brk:1});
+    const pre=infoGrid([['الحاوية','<b>'+esc(z.contNo||'—')+'</b>'],['الفاتورة',esc(z.invNo||('#'+z.no))+' · '+E.dmy(z.date)],['العميل',esc(cu.name||'—')],['البوليصة',esc(z.bl||'—')],['التشغيلة',z.runs.map(r=>'#'+esc(r.no||'?')+' ('+f0(r.kg)+' كجم)').join(' + ')],['مخزن التحميل',esc(app.name('factories',z.loc))],['الكمية',f3(z.tons)+' طن · '+f0(z.cartons)+' كرتونة · '+f0(z.pallets)+' باليت'],['سعر البيع',(usd?'$':'')+E.pfmt(z.price)+(usd?'/كجم × '+f2(z.rate):' ج/كجم')]]);
+    const pr=partRows(z.lines,{T:z.tons,base:z.total});
+    const foot=[tr([td('إجمالي تكلفة الحاوية'),td(f3(z.tons)+' طن','v'),td(''),td(f2(z.costKg)+' /كجم','v'),td(f0(z.total),'v b'),td(f0(z.costTon),'v b'),td('100%','v')],'tt'),
+      tr([td('قيمة البيع'+(usd?' ($'+f2(z.amount)+' × '+f2(z.rate)+')':'')),td(''),td(''),td(''),td(f0(z.rev),'v'),td(z.tons?f0(z.rev/z.tons):'','v'),td('')]),
+      tr([td('<b>الربح'+(z.prov?' <span class="flag">مبدئي</span>':'')+'</b>'),td(''),td(''),td(''),td(f0(z.profit),'v b'),td(z.tons?f0(z.profit/z.tons):'','v b'),td(f1(z.margin)+'%','v b')],'tt')];
+    b.push(T('ورقة تكلفة الحاوية '+esc(z.contNo||('سطر '+(z.li+1))),PHD,pr.R.concat(foot.slice(0,2)),foot[2],'xs cd cs',pre));
+    b.push(H(note(chk(z.sum,z.total))))});
+  return{title:'تفصيل التكاليف — لكل طن ولكل حاوية',meta:per(o.from,o.to)+' · '+methodTxt(C.method),blocks:b,file:'cost-breakdown'}};
 BUILD.stock=function(){const app=A(),D=app.D,C=app.C,b=[];let F=0,Z=0,V=0;
   const fr=D.runs.filter(r=>C.R[r.id].stockFin>0.005||C.R[r.id].stockFarz>0.005).map(r=>{const x=C.R[r.id];F+=x.stockFin;Z+=x.stockFarz;V+=x.stockVal;return tr([td('#'+r.no+' '+E.dmy(r.date)),td(esc(app.name('varieties',r.varietyId))),td(esc(app.name('factories',r.factoryId))),td(f0(x.stockFin),'v'),td(f0(x.stockFin/x.cartonKg),'v'),td(f0(x.stockFarz),'v'),td(f0(x.perTon),'v'),td(f0(x.stockVal),'v b')])});
   let RV=0;const rr=D.purchases.filter(p=>C.P[p.id].remain>0.5).map(p=>{const x=C.P[p.id];RV+=x.remain*x.costKg;return tr([td('#'+p.no+' '+E.dmy(p.date)),td(esc(app.name('parties',p.supplierId))),td(esc(app.name('factories',p.factoryId))),td(f0(x.remain),'v'),td(f3(x.costKg),'v'),td(f0(x.remain*x.costKg),'v b')])});
@@ -189,9 +228,10 @@ async function paginate(doc){const holder=document.createElement('div');holder.c
   if(document.fonts&&document.fonts.ready)await document.fonts.ready;
   const pages=[];let body;const np=()=>{holder.insertAdjacentHTML('beforeend',shell(doc));const p=holder.lastElementChild;pages.push(p);body=p.querySelector('.pbody')};
   const over=()=>body.scrollHeight>body.clientHeight+1;np();
-  const startT=(t,first)=>{const w=document.createElement('div');w.className='rt';w.innerHTML=(t.title?h3(t.title+(first?'':' (تابع)')):'')+'<table class="'+t.cls+'"><thead>'+t.head+'</thead><tbody></tbody></table>';body.appendChild(w);return w};
+  const startT=(t,first)=>{const w=document.createElement('div');w.className='rt';w.innerHTML=(t.title?h3(t.title+(first?'':' (تابع)')):'')+(first&&t.pre?t.pre:'')+'<table class="'+t.cls+'"><thead>'+t.head+'</thead><tbody></tbody></table>';body.appendChild(w);return w};
   doc.blocks.forEach(b=>{
-    if(b.table){const t=b.table;let w=startT(t,true);const tb=()=>w.querySelector('tbody');
+    if(b.brk){if(body.children.length)np();return}
+    if(b.table){const t=b.table;let w=startT(t,true);const tb=()=>w.lastElementChild.querySelector('tbody');
       let first=true,onPage=[];
       const addRow=html=>{tb().insertAdjacentHTML('beforeend',html);onPage.push(html);if(over()){tb().lastElementChild.remove();onPage.pop();
         if(onPage.length<2&&body.children.length>1){const keep=onPage;w.remove();np();w=startT(t,first);keep.forEach(h=>tb().insertAdjacentHTML('beforeend',h));onPage=keep.slice()}

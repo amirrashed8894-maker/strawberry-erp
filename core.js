@@ -252,6 +252,51 @@ function runCost(r,c){
     discSave:rows.reduce((a,s)=>a+s.discSave,0),discKg:rows.reduce((a,s)=>a+s.discKg,0)}
 }
 
+/* ===== v1.3.0: تفصيل التكاليف — تكلفة الطن لكل مكوّن، وورقة تكلفة لكل حاوية (قراية بس، مابيعدّلش أي بيانات) ===== */
+const PART_G=[['raw','الخام'],['trans','النقل'],['sup','مستلزمات الإنتاج'],['svc','خدمات المصنع والتعبئة'],['oth','تكاليف تشغيل أخرى'],['farz','الفرزة'],['load','التحميل (لكل حاوية)'],['exp','مصروفات البيع']];
+function costGroup(c){const nm=String(c.name||'');if(c.bk==='tape'||/لزق/.test(nm))return 'sup';if(c.bk==='pack'||/سيزر|تعبئة|التعبئه|مصنع|تشغيل|عمال|تجميد|تبريد|تخزين|ثلاج|فرز|غسيل/.test(nm))return 'svc';return 'oth'}
+/* مكونات تكلفة التشغيلة: مجموعها = تكلفة الإنتاج النهائي بالظبط (الإجمالي − الفرزة) */
+function runParts(x,IT,run){IT=IT||{};const RC=(run&&run.costs)||[];const T=x.fin/1000,L=[];
+  L.push({k:'raw',g:'raw',name:'شراء الخام (بعد خصم الميزان)',qty:x.rawKg,unit:'كجم',value:x.rawCost});
+  if(Math.abs(x.trans+x.runTrans)>1e-9)L.push({k:'trans',g:'trans',name:'نقل الخام',qty:0,unit:'',value:x.trans+x.runTrans});
+  const si={};(x.supplies||[]).forEach(z=>{let a=si[z.itemId];if(!a){a=si[z.itemId]={k:'i:'+z.itemId,g:'sup',itemId:z.itemId,name:(IT[z.itemId]||{}).name||z.name||'؟',unit:(IT[z.itemId]||{}).unit||z.unit||'',qty:0,value:0,noPrice:false};L.push(a)}a.qty+=n(z.qty);a.value+=n(z.cost);if(z.noPrice)a.noPrice=true});
+  const cm={};(x.costs||[]).forEach((c0,ci)=>{const c=Object.assign({},c0,{bk:(RC[ci]&&RC[ci].bk)||''});const g=costGroup(c),key='c:'+c.name;let a=cm[key];if(!a){a=cm[key]={k:key,g,name:c.name,qty:0,unit:'',value:0,perCtn:c.bk==='tape'||c.bk==='pack'};L.push(a)}a.value+=n(c.amount);if(a.perCtn){a.qty=x.cartons;a.unit='كرتونة'}});
+  const ded=x.total-x.finCost;if(Math.abs(ded)>1e-9)L.push({k:'farz',g:'farz',name:x.method==='joint'?'نصيب الفرزة من التكلفة (بالوزن)':'يخصم: صافي قيمة الفرزة'+(x.status==='final'?'':' (مبدئي)'),qty:x.farz,unit:'كجم',value:-ded});
+  const gi={};PART_G.forEach((g,i)=>gi[g[0]]=i);L.sort((a,b)=>gi[a.g]-gi[b.g]);
+  L.forEach(c=>{c.price=c.qty?c.value/c.qty:0;c.qtyTon=T?c.qty/T:0;c.perTon=T?c.value/T:0;c.pct=x.total?c.value/x.total*100:0});
+  const sum=L.reduce((a,c)=>a+c.value,0);
+  return{T,lines:L,gross:x.total,net:x.finCost,perTon:x.perTon,sum,diff:sum-x.finCost}}
+/* تجميع مكونات (لكذا تشغيلة أو كذا حاوية) بنسبة f لكل مصدر */
+function addParts(acc,lines,f){lines.forEach(c=>{let a=acc.m[c.k];if(!a){a=acc.m[c.k]={k:c.k,g:c.g,name:c.name,unit:c.unit,itemId:c.itemId,qty:0,value:0,perCtn:c.perCtn,noPrice:false};acc.L.push(a)}a.qty+=n(c.qty)*f;a.value+=c.value*f;if(c.noPrice)a.noPrice=true;if(c.g==='farz'&&a.name!==c.name&&/مبدئي/.test(c.name))a.name=c.name})}
+function finParts(acc,T,base){const gi={};PART_G.forEach((g,i)=>gi[g[0]]=i);acc.L.sort((a,b)=>gi[a.g]-gi[b.g]);acc.L.forEach(c=>{c.price=c.qty?c.value/c.qty:0;c.qtyTon=T?c.qty/T:0;c.perTon=T?c.value/T:0;c.pct=base?c.value/base*100:0});return acc.L}
+/* كل التشغيلات (في الفترة): مكونات الطن الصادر المرجّح */
+function runsBreakdown(D,C,o){o=o||{};const IT={};D.items.forEach(i=>IT[i.id]=i);const inP=r=>(!o.from||(r.date||'')>=o.from)&&(!o.to||(r.date||'')<=o.to);
+  const runs=D.runs.filter(inP).slice().sort(ord).map(r=>{const x=C.R[r.id];return{run:r,x,P:runParts(x,IT,r)}}).filter(z=>z.x&&z.x.fin>0);
+  const acc={m:{},L:[]};let T=0,gross=0,net=0,raw=0,fin=0,farz=0,ctn=0;runs.forEach(z=>{addParts(acc,z.P.lines,1);T+=z.P.T;gross+=z.x.total;net+=z.x.finCost;raw+=z.x.rawKg;fin+=z.x.fin;farz+=z.x.farz;ctn+=z.x.cartons});
+  const lines=finParts(acc,T,gross);return{runs,lines,T,gross,net,perTon:T?net/T:0,rawKg:raw,fin,farz,cartons:ctn,sum:lines.reduce((a,c)=>a+c.value,0),prov:runs.some(z=>z.x.method!=='joint'&&z.x.status!=='final')}}
+/* ورقة تكلفة لكل حاوية (أو سطر تصدير): نصيبها من مكونات التشغيلات + بنود التحميل (كمية × سعر) + مصروفات البيع */
+function contSheets(D,C,o){o=o||{};const S=D.settings[0]||{},b=bomOf(S),IT={},RN={};D.items.forEach(i=>IT[i.id]=i);D.runs.forEach(r=>RN[r.id]=r);const PC={};
+  const rp=id=>PC[id]||(PC[id]=C.R[id]?runParts(C.R[id],IT,RN[id]):null);
+  const inP=s=>(!o.from||(s.date||'')>=o.from)&&(!o.to||(s.date||'')<=o.to);const out=[];
+  D.sales.filter(s=>s.kind!=='farz'&&inP(s)).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')||n(a.no)-n(b.no)).forEach(s=>{const x=C.SL[s.id];if(!x)return;
+    x.lines.forEach((l,li)=>{const acc={m:{},L:[]};const runs=[];let prov=false;
+      l.parts.forEach(q=>{const r=C.R[q.runId],P=rp(q.runId);runs.push({runId:q.runId,no:(RN[q.runId]||{}).no,date:(RN[q.runId]||{}).date,kg:q.kg,kgCost:q.kgCost});if(!r||!P||!(r.fin>0))return;if(r.method!=='joint'&&r.status!=='final')prov=true;addParts(acc,P.lines,q.kg/r.fin)});
+      const prod=acc.L;const prodT=prod.reduce((a,c)=>a+c.value,0);
+      const items=(l.loadItems||[]).filter(z=>n(z.qty)>0||n(z.cost)>0).map(z=>({k:'L:'+z.itemId,g:'load',itemId:z.itemId,name:(IT[z.itemId]||{}).name||'؟',unit:(IT[z.itemId]||{}).unit||'',qty:n(z.qty),value:n(z.cost),noPrice:!!z.noPrice}));
+      const svcs=(l.loadSvcs||[]).filter(z=>n(z.amount)).map(z=>({k:'LS:'+z.name,g:'load',name:z.name,unit:'',qty:0,value:n(z.amount)}));
+      const ex=x.rev?x.exp*l.egp/x.rev:(x.lines.length?x.exp/x.lines.length:0);
+      const exps=x.exps.filter(e=>e.amount).map(e=>({k:'E:'+e.name,g:'exp',name:e.name,unit:'',qty:0,value:x.rev?e.amount*l.egp/x.rev:(x.lines.length?e.amount/x.lines.length:0)}));
+      const lines=prod.concat(items,svcs,exps);const T=l.kg/1000;const total=l.cogs+l.load+ex;
+      lines.forEach(c=>{c.price=c.qty?c.value/c.qty:0;c.qtyTon=T?c.qty/T:0;c.perTon=T?c.value/T:0;c.pct=total?c.value/total*100:0});
+      const palIt=items.find(z=>z.itemId===((b.lines.find(q=>q.k==='pal')||{}).itemId));
+      out.push({saleId:s.id,no:s.no,date:s.date,invNo:x.invNo||String(s.invNo||'').trim(),customerId:s.customerId,cur:x.cur,rate:x.rate,cont:x.cont,li,contNo:l.cont,bl:l.bl,runs,prov,
+        kg:l.kg,tons:T,cartons:l.cartons,pallets:palIt?palIt.qty:loadPal(l.cartons,b),lines,prodT,cogs:l.cogs,load:l.load,exp:ex,total,costTon:T?total/T:0,costKg:l.kg?total/l.kg:0,
+        price:l.price,amount:l.amount,rev:l.egp,profit:l.egp-total,margin:l.egp?(l.egp-total)/l.egp*100:0,loc:l.loadLoc,sum:lines.reduce((a,c)=>a+c.value,0)})})});
+  return out}
+/* إجمالي الطن المباع تصدير شامل التحميل ومصروفات البيع (من أوراق الحاويات) */
+function contTotals(sh){const acc={m:{},L:[]};let kg=0,total=0,rev=0,ctn=0,pal=0;sh.forEach(z=>{addParts(acc,z.lines,1);kg+=z.kg;total+=z.total;rev+=z.rev;ctn+=z.cartons;pal+=z.pallets});const T=kg/1000;
+  const lines=finParts(acc,T,total);return{lines,kg,T,total,rev,profit:rev-total,margin:rev?(rev-total)/rev*100:0,cartons:ctn,pallets:pal,costTon:T?total/T:0,sum:lines.reduce((a,c)=>a+c.value,0)}}
+
 function allocOf(l){return Array.isArray(l.alloc)&&l.alloc.length?l.alloc:null}
 function saleInfo(s,c){
   const kind=s.kind==='farz'?'farz':'export',cur=s.cur==='USD'?'USD':'EGP',rate=cur==='USD'?n(s.rate):1,cont=kind==='export'&&!!s.cont;
@@ -279,6 +324,6 @@ function pfmt(x){x=+x||0;return fmt(x,Math.abs(Math.round(x*1000)-Math.round(x*1
 function fmt(x,d){x=Math.round((+x||0)*Math.pow(10,d))/Math.pow(10,d)+0;return x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 
-g.ERP={loadPal,bomLoadQty,bomLoadSvc,ensureSeedItems,DEF_BOM,BASE_L,bomOf,patchBom126,bomQty,bomSvc,openInfo,SEED_T,DEF_SUPPLIES,DEF_INPUTS,fcDefaults,fcCalc,parse,n,seed,compute,runCost,saleInfo,dmy,parseDmy,cairoIso,cairoTime,fmt,pfmt,contN,pNet,migrate,uid,COLLS,PTYPES,COST_CATS,STOCK_ITEMS,FACTORIES,VARIETIES};
+g.ERP={PART_G,costGroup,runParts,runsBreakdown,contSheets,contTotals,loadPal,bomLoadQty,bomLoadSvc,ensureSeedItems,DEF_BOM,BASE_L,bomOf,patchBom126,bomQty,bomSvc,openInfo,SEED_T,DEF_SUPPLIES,DEF_INPUTS,fcDefaults,fcCalc,parse,n,seed,compute,runCost,saleInfo,dmy,parseDmy,cairoIso,cairoTime,fmt,pfmt,contN,pNet,migrate,uid,COLLS,PTYPES,COST_CATS,STOCK_ITEMS,FACTORIES,VARIETIES};
 if(typeof module!=='undefined')module.exports=g.ERP;
 })(typeof window!=='undefined'?window:globalThis);

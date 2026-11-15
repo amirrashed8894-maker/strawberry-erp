@@ -13,7 +13,7 @@ await ctx.route(/supabase\.co/,r=>r.abort());
 const NATIVE=[];const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('dialog',d=>{NATIVE.push(d.type()+': '+d.message());d.dismiss()});
 await p.addInitScript(()=>{window.__nativeCalls=[];['prompt','confirm','alert'].forEach(k=>{const o=window[k];window[k]=function(){window.__nativeCalls.push(k);return o.apply(window,arguments)}})});
 await p.goto(BASE);await p.waitForFunction(()=>window.__ready);ok('مش مربوط بالسحابة',await p.evaluate(()=>!SYNC.state.enabled));
-ok('النسخة '+await p.evaluate(()=>APP.VER),/^1\.2\.[2-9]/.test(await p.evaluate(()=>APP.VER)));
+ok('النسخة '+await p.evaluate(()=>APP.VER),/^1\.(2\.[2-9]|3\.\d)/.test(await p.evaluate(()=>APP.VER)));
 const S='#sheet ';
 const open=async(k,kind)=>{await p.evaluate(([k,kind])=>{const b=document.createElement('button');b.dataset.act='new';b.dataset.k=k;if(kind)b.dataset.kind=kind;document.body.appendChild(b);b.click();b.remove()},[k,kind]);if(k==='sale'&&kind!=='farz'){await p.waitForSelector('#dlg:not([hidden]) input[data-dk="n"]');await p.fill('#dlg input[data-dk="n"]','1');await p.click('#dlg [data-dlg="ok"]')}await p.waitForSelector('#sheet:not([hidden])');await p.waitForTimeout(60)};
 const close=async()=>{if(await p.$eval('#sheet',e=>!e.hidden))await p.click(S+'.shb [data-act="fclose"]');await p.waitForTimeout(40)};

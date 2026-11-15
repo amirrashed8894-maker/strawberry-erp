@@ -13,7 +13,7 @@ async function open(root){const ctx=await b.newContext({viewport:{width:1000,hei
 const sig=(p,f)=>p.evaluate(j=>JSON.stringify(ERP.compute(JSON.parse(j).data),(k,v)=>k==='parts'||k==='alloc'?undefined:v),fs.readFileSync(R+'/test/'+f,'utf8'));
 // 0) الحسابات على البيانات الموجودة زي 1.2.7 بالظبط
 const po=await open(OLD),p=await open(R);
-ok('1.2.7 و1.2.8',(await po.evaluate(()=>APP.VER))==='1.2.7'&&(await p.evaluate(()=>APP.VER))==='1.2.9');
+ok('1.2.7 و1.2.8',(await po.evaluate(()=>APP.VER))==='1.2.7'&&(await p.evaluate(()=>APP.VER))>='1.2.9');
 for(const f of ['scenario100.json','scenario128.json'])ok('كل الحسابات على البيانات الموجودة زي 1.2.7 بالظبط — '+f,(await sig(po,f))===(await sig(p,f)));
 await po.context().close();
 const st=await p.evaluate(()=>APP.D.runs.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.no-b.no).map(r=>({id:r.id,no:r.no,date:r.date,av:APP.C.R[r.id].stockFin,kc:APP.C.R[r.id].finKgCost})));
