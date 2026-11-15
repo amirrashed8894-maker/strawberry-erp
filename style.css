@@ -194,3 +194,21 @@ details.dd[open]>summary:after{content:'⌃'}
 .ci{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}.ci>div{background:var(--soft);border-radius:10px;padding:6px 9px}.ci>div>span{display:block;font-size:12px;color:var(--mut)}.ci b{font-size:14.5px}
 .rp table.cd td:first-child{min-width:190px}.rp table.cd td:nth-child(6){background:#f8f8f7}
 .rp table.cs td{padding:1px 5px;line-height:1.3}.rp table.cs th{padding:2px 5px}.rp table.cs{font-size:10px}.rp .rt:has(table.cs) h3{margin-top:2px}.rp .rt:has(table.cs) table.rgrid{margin-bottom:4px}.rp .rt:has(table.cs) table.rgrid td,.rp .rt:has(table.cs) table.rgrid th{padding:2px 5px}
+
+/* v1.3.1: تكلفة الحاوية / الفاتورة — تفصيلي */
+.rp .chd{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;border-bottom:1.5px solid #111;padding:2px 0 4px;margin:2px 0 6px}.rp .chd>b{font-size:16px;font-weight:900}.rp .chd>span{font-size:11.5px;color:#444}
+.rp table.cc{font-size:11.5px}.rp table.cc td{padding:2px 6px;line-height:1.35}.rp table.cc th{padding:3px 6px}.rp table.cc td:first-child{width:46%}.rp table.cc th:not(:first-child){text-align:left}.rp table.cc tr.g td{background:#f3f3f2;font-size:11.5px;padding-top:4px}
+.rp table.cx td:first-child{width:52%}.rp .rt:has(table.cc) h3{margin-top:7px}
+.rp table.pd2 td:first-child{width:44%;line-height:1.5}.rp table.pd2 tr.g1 td{border-top:1.5px solid #bbb}.rp table.pd2 td.ind{padding-inline-start:16px}
+/* عرض القراءة على الموبايل */
+#rep.flow .pw{display:none}#rep:not(.flow) .rpf{display:none}
+.rp.rpf{width:auto;height:auto;max-width:794px;margin:0 8px;overflow:visible;padding:14px 12px 20px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.12);font-size:14px}
+.rpf .fh{border-bottom:1.5px solid #111;padding-bottom:6px;margin-bottom:8px}.rpf .fh h1{margin:0;font-size:19px;font-weight:900;line-height:1.35}.rpf .fh .meta{font-size:12.5px;color:#555}.rpf .fh .dt{font-size:12px;color:#666;margin-top:2px}
+.rpf .tsc{overflow-x:auto;-webkit-overflow-scrolling:touch}.rpf table,.rpf table.sm,.rpf table.xs,.rpf table.cc{font-size:13px}.rpf th{font-size:12px}.rpf td{padding:5px 5px}
+.rpf .rk.k4,.rpf .rk.k5{grid-template-columns:1fr 1fr}.rpf .rk .m b{font-size:17px}.rpf .rk .m.main b{font-size:19px}.rpf .rn{font-size:12.5px}.rpf table.rgrid th{width:24%}.rpf table.rgrid{font-size:12.5px}
+.rpf hr.rbrk{border:0;border-top:2px dashed #bbb;margin:18px 0 10px}.rpf .fsign{display:flex;align-items:center;gap:8px;margin-top:16px}.rpf .fsign img{height:44px}.rpf .fsign b{display:block;font-size:14px}.rpf .fsign span{font-size:11.5px;color:#666}
+.rpf table.cc td:first-child,.rpf table.pd2 td:first-child{width:auto;min-width:120px}
+/* الشاشة */
+.csh h3.sech{font-size:15px;margin:14px 0 6px;font-weight:800}.csh .kpis.cs4{margin:10px 0}.csh .kpi em{font-style:normal}
+table.t.cc tr.tt td{font-weight:800;border-top:1.5px solid #999}table.t.cc tr.g td{background:var(--soft)}
+@media print{.rpf{display:none!important}#rep.flow .pw{display:block!important}}
